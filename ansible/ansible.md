@@ -57,7 +57,11 @@ tasks: #este campo se rellenaria con toda la tarea que va a realizar el playbook
 **Tenemos varios campos que podemos definir aqui**
 
 ejemplos
-
+> Podemos usar `when:` en cualquier funcion para hacer una comprabacion que queramos
+es como usar un if.  
+Tambien podemos usar `ignore_errors: yes` para que si hay un error en la ejecucion 
+de la funcion no pare el playbook y continue.
+>
 ```
 - name: uso de comando shell en el playbook
   ansible.builtin.command: "<comando>"
@@ -72,7 +76,13 @@ ejemplos
       package:
         name: cpp
         #name: 
-        #- <nombre-paquete>
-        #- <nombre-paquete> 
+          #- <nombre-paquete>
+          #- <nombre-paquete> 
         state: present #este parametro comprueba que este instalado cuando acabe la funcion.  
+
+- name: iniciar y habilitar un proceso 
+  systemd:
+    name: <servicio>
+    state: started
+    enabled: yes  
 ```

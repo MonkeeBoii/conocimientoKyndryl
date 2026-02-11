@@ -1,0 +1,31 @@
+- name: ejercicio5 configuracion de mariadb
+  hosts: [myhosts]
+  become: true
+  vars:
+    mariadb_root_password: "alvaro"
+    nombre_bd: "ansible"
+    usuario_bd: "alvaro"
+    password_usuario_bd: "alvaro"
+
+  tasks:
+    - name: instalar mariadb
+      package:
+        name: 
+        - mariadb
+        - mariadb-server
+        state: present
+
+    - name: Habilitar mariadb
+      systemd:
+        name: mariadb
+        state: started
+        enabled: yes
+
+    - name: configurar root de mariad
+      ansible.builtin.shell: |
+        echo "ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mariadb_root_password }}';FLUSH PRIVILEGES;" | sudo mariadb
+      ignore_errors: yes
+
+    - name: crear base de datos
+      ansible.builtin.shell: |
+        echo "CREATE DATABASE {{ nombre_bd }};CREATE USER '{{ usuario_bd }}'@'localhost' IDENTIFIED BY '{{ password_usuario_bd }}';GRANT ALL PRIVILEGES ON {{ nombre_bd }}.* TO '{{ usuario_bd }}'@'localhost';FLUSH PRIVILEGES;" | sudo mariadb -u root -p"{{ mariadb_root_password }}"

@@ -1,0 +1,16 @@
+- name: ejercicio4 desplegar un nginx
+  hosts: [myhosts]
+  become: true
+  tasks:
+    - name: instalar nginx
+      package:
+        name: nginx
+        state: present
+
+    - name: habilitar nginx
+      ansible.builtin.command: "sudo systemctl enable --now nginx"
+
+    - name: permitir el firewall el protocolo http
+      ansible.builtin.shell: |
+        sudo firewall-cmd --add-service=http --permanent
+        sudo firewall-cmd --reload
