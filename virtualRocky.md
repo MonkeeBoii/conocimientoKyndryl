@@ -16,8 +16,8 @@
     ```
 * **enp0s8** -> NAT  
     ip: dhcp  
-    mask: dhcp
-    gateway: dhcp
+    mask: dhcp  
+    gateway: dhcp  
     configuracion:
 
     ```sh

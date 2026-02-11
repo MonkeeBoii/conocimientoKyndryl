@@ -11,13 +11,13 @@ parametros que nos permite tener las maquinas ordenadas.
 En el archivo `inventory.ini` podemos poner todos los equipos
 que vayamos a usar en la ejecucion de un `playbook.yaml`.
 >
-* Parametros
+* Parametros  
 `[GRUPO]` los grupos son agrupaciones de hosts que nos 
 permitira ejecutar acciones con muchos equipos a la vez.  
 `ansible_host` este nos permitira determinar el nombre para
-una maquina en el inventario.
+una maquina en el inventario.  
 `ansible_user` es nos permitira conectarnos con un usuario 
-determinado hacia la maquina.  
+determinado hacia la maquina.    
 
 ejemplo
 ```yaml
@@ -46,6 +46,33 @@ Estos son unos ejemplos:
 ```
 hosts: [grupo] #define a que grupo del diccionario va dirigido
 become: true | false #define si puede usar sudo sin necesidad de pedirlo
+vars: aqui podemos definir las variables que se van a usar en nuestro playbook  
 tasks: #este campo se rellenaria con toda la tarea que va a realizar el playbook
 ```
 
+### tasks
+
+> Aqui es donde se define todos los procesos que se realizaran en la maquina.
+> 
+**Tenemos varios campos que podemos definir aqui**
+
+ejemplos
+
+```
+- name: uso de comando shell en el playbook
+  ansible.builtin.command: "<comando>"
+
+- name: uso de script en el playbook
+  ansible.builtin.shell: | #aqui puedes usar la | o > esto indicara como interaciona el playbook con los saltos de linea  
+        if id "{{ usuario }}" &>dev/null; then
+          sudo userdel "{{ usuario }}"
+        fi
+
+- name: intalar paquete #para poner varios paquetes pondiamos despuede de "name:" un salto de linea y empezarimos a poner -<nombre-paquete> salto de linea -<nombre-paquete>
+      package:
+        name: cpp
+        #name: 
+        #- <nombre-paquete>
+        #- <nombre-paquete> 
+        state: present #este parametro comprueba que este instalado cuando acabe la funcion.  
+```

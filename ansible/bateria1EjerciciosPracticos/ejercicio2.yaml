@@ -1,0 +1,9 @@
+- name: ejercicio2 gestion de archivos
+  hosts: [myhosts]
+  become: true
+  vars:
+    nombre_archivo: "ejercicio2"
+    ruta: "/home/alvaro/{{ nombre_archivo }}"
+  tasks:
+    - name: crear un archivo en la ruta especificada
+      ansible.builtin.command: "touch {{ ruta }}"

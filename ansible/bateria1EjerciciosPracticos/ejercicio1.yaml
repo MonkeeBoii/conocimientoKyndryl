@@ -1,0 +1,9 @@
+- name: ejercicio1 configuracion basica
+  hosts: [myhosts]
+  become: true
+  tasks:
+    - name: intalar paquete
+      package:
+        name:
+          - cpp
+        state: present
