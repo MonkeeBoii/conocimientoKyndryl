@@ -65,9 +65,15 @@ de la funcion no pare el playbook y continue.
 ```
 - name: uso de comando shell en el playbook
   ansible.builtin.command: "<comando>"
+# estos parametros se pueden usar en varias tareas
+  changed_when: false # <-- sirve para evitar que Ansible marque una tarea como “changed” aunque haya tenido salida.
+  failed_when: false # <-- sirve para evitar que una tarea falle, incluso si el comando devuelve un error.
+  check_mode: yes # <-- sirve para ver qué haría una tarea sin cambiar el sistema. Equivalente a ejecutar el playbook con --check, pero solo para esa tarea.
+  creates: # <-- Evita ejecutar una tarea si ya existe un archivo.
+  removes: # <-- Evita ejecutar la tarea si el archivo NO existe.
 
 - name: uso de script en el playbook
-  ansible.builtin.shell: | #aqui puedes usar la | o > esto indicara como interaciona el playbook con los saltos de linea  
+  ansible.builtin.shell: | # <-- aqui puedes usar la | o > esto indicara como interaciona el playbook con los saltos de linea  
         if id "{{ usuario }}" &>dev/null; then
           sudo userdel "{{ usuario }}"
         fi
@@ -78,11 +84,56 @@ de la funcion no pare el playbook y continue.
         #name: 
           #- <nombre-paquete>
           #- <nombre-paquete> 
-        state: present #este parametro comprueba que este instalado cuando acabe la funcion.  
+        state: present # <-- este parametro comprueba que este instalado cuando acabe la funcion.  
+        update_cache: true # <-- esto sirve para que actualize base de datos de paquetes antes de instalar nada.
 
 - name: iniciar y habilitar un proceso 
   systemd:
     name: <servicio>
     state: started
     enabled: yes  
+```
+Tambien podemos crear archivos y editarlos con ansible
+
+* Crear achivos de texto
+```
+- name: Crear archivo de texto
+  copy:
+    dest: /tmp/mi_archivo.txt
+    content: "Este es el contenido del archivo\n"
+- name: Crear archivo vacío
+  file:
+    path: /tmp/vacio.txt
+    state: touch
+```
+* Editar archivos de texto
+```
+- name: Añadir línea a un archivo
+  lineinfile:
+    path: /tmp/mi_archivo.txt
+    line: "Nueva línea añadida"
+
+- name: Reemplazar texto en un archivo
+  replace:
+    path: /tmp/mi_archivo.txt
+    regexp: "antiguo"
+    replace: "nuevo"
+
+# Tambien podemos añadir en bloque el contenido
+- name: Insertar un bloque de texto
+  blockinfile:
+    path: /tmp/mi_archivo.txt
+    block: |
+      Esta es una sección nueva
+      contenida en un bloque.
+
+#podemos crear un archivo mediante un template 
+- name: Desplegar config desde plantilla y hacer backup del archivo anterior
+  ansible.builtin.template:
+    src: templates/mi_config.extension
+    dest: /etc/mi_app/mi_config.conf
+    owner: root          # <-- asignamos a quien le pertenece el archivo
+    group: root          # <-- asignamos a que grupo le pertenece el archivo
+    mode: '0644'         # <-- permisos y bits especiales
+    backup: yes          # <-- crea un backup del archivo destino antes de sobrescribir
 ```
