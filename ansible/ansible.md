@@ -61,6 +61,7 @@ ejemplos
 es como usar un if.  
 Tambien podemos usar `ignore_errors: yes` para que si hay un error en la ejecucion 
 de la funcion no pare el playbook y continue.
+Podemos usar `become: yes` en una task para que se ejecute con permisos de sudo.
 >
 ```
 - name: uso de comando shell en el playbook
