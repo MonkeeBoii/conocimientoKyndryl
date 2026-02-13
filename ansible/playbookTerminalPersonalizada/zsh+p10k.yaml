@@ -1,0 +1,37 @@
+- name: instalar una terminal personalizada con zsh y p10k
+  hosts: [pruebas]
+  tasks:
+    - name: comprobar paquetes
+      package:
+        name:
+          - curl
+          - git
+          - zsh
+        state: present
+        update_cache: yes
+      become: yes
+
+    - name: Instalar oh-my-zsh
+      ansible.builtin.shell: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+      args:
+        creates: ~/.oh-my-zsh
+   
+    - name: Detectar ruta de zsh
+      ansible.builtin.command: "which zsh"
+      register: zsh_path_cmd
+      changed_when: false
+
+    - name: cambiar zsh como interprete por defecto
+      ansible.builtin.command: "chsh -s {{ zsh_path_cmd.stdout }}"
+      become: yes
+      become_user: yes
+
+    - name: instalar kitty si es posible
+      package:
+        name:
+          - kitty
+        state: present
+      become: yes
+      ignore_errors: yes
+    
+
