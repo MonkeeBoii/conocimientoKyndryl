@@ -1,25 +1,25 @@
 # Ansible  
-## Introduccion a ansible  
+## Introducción a Ansible  
 >
-Aqui voy a explicar para que sirve el `inventory.ini`.
+Aquí voy a explicar para que sirve el `inventory.ini`.
 Este es un diccionario donde guardaremos las direcciones
-IP de una maquina y le asignaremos un nombre y tambien mas
-parametros que nos permite tener las maquinas ordenadas.
+IP de una maquina y le asignaremos un nombre y también mas
+parámetros que nos permite tener las maquinas ordenadas.
 >
 ## inventory.ini
 >
 En el archivo `inventory.ini` podemos poner todos los equipos
 que vayamos a usar en la ejecucion de un `playbook.yaml`.
 >
-* Parametros  
+* Parámetros  
 `[GRUPO]` los grupos son agrupaciones de hosts que nos 
-permitira ejecutar acciones con muchos equipos a la vez.  
-`ansible_host` este nos permitira determinar el nombre para
+permitirá ejecutar acciones con muchos equipos a la vez.  
+`ansible_host` este nos permitirá determinar el nombre para
 una maquina en el inventario.  
-`ansible_user` es nos permitira conectarnos con un usuario 
+`ansible_user` es nos permitirá conectarnos con un usuario 
 determinado hacia la maquina.    
 
-ejemplo
+Ejemplo
 ```yaml
 [myhosts]
 ejemplo         ansible_host=192.168.10.5       ansible_user=usuario_ejemplo
@@ -34,13 +34,13 @@ como quieras**
 >
 
 Para iniciar el archivo playbook.yaml primero tienes que darle
-un nombre a la funcion que va a realizar
+un nombre a la función que va a realizar
 
 ```
 - name: nombre que le vamos a dar a nuestro playbook
 ```
-despues podemos darle parametros al inicio del playbook
-para por ejemplo definir a quien va dirigido y demas.
+después podemos darle parámetros al inicio del playbook
+para por ejemplo definir a quien va dirigido y demás.
 Estos son unos ejemplos:
 
 ```
@@ -52,15 +52,15 @@ tasks: #este campo se rellenaria con toda la tarea que va a realizar el playbook
 
 ### tasks
 
-> Aqui es donde se define todos los procesos que se realizaran en la maquina.
+> Aquí es donde se define todos los procesos que se realizaran en la maquina.
 > 
-**Tenemos varios campos que podemos definir aqui**
+**Tenemos varios campos que podemos definir aquí**
 
-ejemplos
-> Podemos usar `when:` en cualquier funcion para hacer una comprabacion que queramos
+Ejemplos
+> Podemos usar `when:` en cualquier función para hacer una comprobación que queramos
 es como usar un if.  
-Tambien podemos usar `ignore_errors: yes` para que si hay un error en la ejecucion 
-de la funcion no pare el playbook y continue.
+También podemos usar `ignore_errors: yes` para que si hay un error en la ejecución 
+de la función no pare el playbook y continue.
 Podemos usar `become: yes` en una task para que se ejecute con permisos de sudo.
 >
 ```
@@ -94,9 +94,9 @@ Podemos usar `become: yes` en una task para que se ejecute con permisos de sudo.
     state: started
     enabled: yes  
 ```
-Tambien podemos crear archivos y editarlos con ansible
+También podemos crear archivos y editarlos con Ansible
 
-* Crear achivos de texto
+* Crear archivos de texto
 ```
 - name: Crear archivo de texto
   copy:
