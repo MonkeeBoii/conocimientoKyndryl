@@ -1,6 +1,6 @@
+
 # Curso Linux
 ## Índice
-
 ## 1. Estructura del Sistema de Ficheros
 - [Estructura de directorios de Linux](#estructura-de-directorios-de-linux)
 
@@ -39,7 +39,7 @@
 - [b) Repositorios y gestores de paquetes](#b-repositorios-y-gestores-de-paquetes)
 
 ---
-## Introducción a Linux
+
 ### Estructura de directorios de Linux
 #### /
 Raíz del sistema. Desde aquí cuelgan todos los directorios.
@@ -407,3 +407,5 @@ Los gestores de paquetes permiten **instalar, actualizar y eliminar** software d
 - Repositorios de terceros (como PPA en Ubuntu)  
 - Repos privados empresariales  
 - AUR (Arch User Repository) para Arch
+
+by MonkeeBoi
