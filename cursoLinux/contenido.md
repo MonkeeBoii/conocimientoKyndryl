@@ -1,28 +1,8 @@
 # Curso Linux
-## Indice
-
-# Índice
+## Índice
 
 ## 1. Estructura del Sistema de Ficheros
 - [Estructura de directorios de Linux](#estructura-de-directorios-de-linux)
-  - [/](#-1)
-  - [/bin](#bin)
-  - [/sbin](#sbin)
-  - [/usr](#usr)
-  - [/lib](#lib)
-  - [/lib64](#lib64)
-  - [/etc](#etc)
-  - [/home](#home)
-  - [/root](#root)
-  - [/opt](#opt)
-  - [/var](#var)
-  - [/tmp](#tmp)
-  - [/mnt](#mnt)
-  - [/media](#media)
-  - [/dev](#dev)
-  - [/proc](#proc)
-  - [/sys](#sys)
-  - [/run](#run)
 
 ## 2. Configuración y Gestión de Red
 - [a) Interfaces de red](#a-interfaces-de-red)
