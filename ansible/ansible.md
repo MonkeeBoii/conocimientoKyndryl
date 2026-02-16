@@ -109,7 +109,7 @@ También podemos crear archivos y editarlos con Ansible
 ```
 * Editar archivos de texto
 ```
-- name: Añadir línea a un archivo
+- name: Añadir línea a un archivo si existe la Reemplazar
   lineinfile:
     path: /tmp/mi_archivo.txt
     line: "Nueva línea añadida"
@@ -127,7 +127,9 @@ También podemos crear archivos y editarlos con Ansible
     block: |
       Esta es una sección nueva
       contenida en un bloque.
-
+```
+* Crear archivos mediate un template
+```
 #podemos crear un archivo mediante un template 
 - name: Desplegar config desde plantilla y hacer backup del archivo anterior
   ansible.builtin.template:

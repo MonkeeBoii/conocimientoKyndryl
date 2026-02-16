@@ -3,6 +3,10 @@
   become: yes
   vars:
     user: "alvaro"
+    instalar_kitty: true
+    cambiar_tema: true
+    tema_default: true
+    zsh_theme: "amuse"
   tasks:
     - name: comprobar paquetes
       package:
@@ -14,7 +18,7 @@
         update_cache: yes
 
     - name: Instalar oh-my-zsh
-      ansible.builtin.shell: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+      ansible.builtin.shell: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" ""
       args:
         creates: ~/.oh-my-zsh
    
@@ -35,5 +39,28 @@
         state: present
       become: yes
       ignore_errors: yes
+      when: instalar_kitty 
     
+    - name: Actualizar zsh theme si se quiere un tema en especifico
+      ansible.builtin.lineinfile:
+        path: "/home/{{ user }}/.zshrc"
+        regexp: '^\s*ZSH_THEME\s*='
+        line: 'ZSH_THEME="{{ zsh_theme }}"'
+        backup: yes
+      when: (not tema_default) and cambiar_tema
+
+    - name: instalar power10k por defecto
+      ansible.builtin.git:
+        repo: "https://github.com/romkatv/powerlevel10k.git"
+        dest: "/home/{{ user }}/.oh-my-zsh/custom/themes/powerlevel10k"
+        version: "master"
+        update: yes
+    
+    - name: cambiar el tema por default
+      ansible.builtin.lineinfile:
+        path: "/home/{{ user }}/.zshrc"
+        regexp: '^\s*ZSH_THEME\s*='
+        line: 'ZSH_THEME="powerlevel10k/powerlevel10k"'
+        backup: yes
+      when: tema_default and cambiar_tema
 
