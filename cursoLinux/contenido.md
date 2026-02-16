@@ -1,6 +1,5 @@
 # Curso Linux
 ## Indice
-# Índice General
 
 ## 1. Introducción a Linux
 - [1. Estructura de directorios de Linux](#estructura-de-direcctorios-de-linux)
@@ -320,14 +319,14 @@ LV – Logical Volume
 De este “pool” creas volúmenes lógicos, que funcionan como particiones.
 Ej: miVG/miLV → lo formateas y montas como si fuera una partición normal.
 
-✔ Aumentar o reducir espacio fácilmente
-Puedes ampliar un LV sin apagar el sistema (si el FS lo permite).
-✔ Combinar varios discos como si fueran uno
-Ideal para servidores con discos añadidos con el tiempo.
-✔ Snapshots (copias congeladas)
-Muy útil para backups o actualizaciones seguras.
-✔ Mover datos entre discos sin parar el sistema
-Puedes migrar LVs de un disco a otro en caliente.
+* Aumentar o reducir espacio fácilmente  
+Puedes ampliar un LV sin apagar el sistema (si el FS lo permite).  
+* Combinar varios discos como si fueran uno  
+Ideal para servidores con discos añadidos con el tiempo.  
+* Snapshots (copias congeladas)  
+Muy útil para backups o actualizaciones seguras.  
+* Mover datos entre discos sin parar el sistema  
+Puedes migrar LVs de un disco a otro en caliente.  
 
 Comandos clave para manejar volúmenes LVM:
 
