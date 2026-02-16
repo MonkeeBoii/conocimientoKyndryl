@@ -2,7 +2,7 @@
 ## Indice
 
 ## 1. Introducción a Linux
-- [1. Estructura de directorios de Linux](#estructura-de-direcctorios-de-linux)
+- [Estructura de directorios de Linux](####estructura-de-direcctorios-de-linux)
 
 ## 2. Estructura del Sistema de Ficheros
 - [2.a) Directorios principales de Linux](#2a-directorios-principales-de-linux)
