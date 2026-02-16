@@ -1,45 +1,64 @@
 # Curso Linux
 ## Indice
 
-## 1. Introducción a Linux
-- [Estructura de directorios de Linux](####estructura-de-direcctorios-de-linux)
+# Índice
 
-## 2. Estructura del Sistema de Ficheros
-- [2.a) Directorios principales de Linux](#2a-directorios-principales-de-linux)
+## 1. Estructura del Sistema de Ficheros
+- [Estructura de directorios de Linux](#estructura-de-directorios-de-linux)
+  - [/](#-1)
+  - [/bin](#bin)
+  - [/sbin](#sbin)
+  - [/usr](#usr)
+  - [/lib](#lib)
+  - [/lib64](#lib64)
+  - [/etc](#etc)
+  - [/home](#home)
+  - [/root](#root)
+  - [/opt](#opt)
+  - [/var](#var)
+  - [/tmp](#tmp)
+  - [/mnt](#mnt)
+  - [/media](#media)
+  - [/dev](#dev)
+  - [/proc](#proc)
+  - [/sys](#sys)
+  - [/run](#run)
 
-## 3. Configuración y Gestión de Red
-- [3.a) Interfaces de red](#3a-interfaces-de-red)
-- [3.b) Configuración de DNS](#3b-configuración-de-dns)
-- [3.c) Configuración de rutas de red](#3c-configuración-de-rutas-de-red)
-- [3.d) Firewall en Linux](#3d-firewall-en-linux)
-- [3.e) Conexiones y uso de puertos](#3e-conexiones-y-uso-de-puertos)
+## 2. Configuración y Gestión de Red
+- [a) Interfaces de red](#a-interfaces-de-red)
+- [b) Configuración de DNS](#b-configuración-de-dns)
+- [c) Configuración de rutas de red](#c-configuración-de-rutas-de-red)
+- [d) Firewall en Linux](#d-firewall-en-linux)
+- [e) Conexiones y uso de puertos](#e-conexiones-y-uso-de-puertos)
 
-## 4. Gestión de Usuarios
-- [4.a) Usuarios y grupos de usuario](#4a-usuarios-y-grupos-de-usuario)
-- [4.b) Permisos y propietarios](#4b-permisos-y-propietarios)
+## 3. Gestión de Usuarios
+- [a) Usuarios y grupos de usuario](#a-usuarios-y-grupos-de-usuario)
+- [b) Permisos y propietarios](#b-permisos-y-propietarios)
 
-## 5. Servicios
-- [5.a) SysVinit vs Systemd](#5a-sysvinit-vs-systemd)
-- [5.b) Servicio de acceso: SSH](#5b-servicio-de-acceso-ssh)
-- [5.c) Servicios de transferencia de ficheros: FTP, SFTP y SCP](#5c-servicios-de-transferencia-de-ficheros-ftp-sftp-y-scp)
+## 4. Servicios
+- [a) SysVinit vs Systemd](#a-sysvinit-vs-systemd)
+- [b) Servicio de acceso: SSH](#b-servicio-de-acceso-ssh)
+- [c) Servicios de transferencia de ficheros: FTP, SFTP y SCP](#c-servicios-de-transferencia-de-ficheros-ftp-sftp-y-scp)
 
-## 6. Herramientas de Administración
-- [6.a) Logs del sistema](#6a-logs-del-sistema)
-- [6.b) Procesos](#6b-procesos)
-- [6.c) Monitorización de recursos](#6c-monitorización-de-recursos)
-- [6.d) Tareas programadas](#6d-tareas-programadas)
-- [6.e) Búsqueda de ficheros y directorios](#6e-búsqueda-de-ficheros-y-directorios)
-- [6.f) Copias y backup](#6f-copias-y-backup)
+## 5. Herramientas de Administración
+- [a) Logs del sistema (syslog, logrotate)](#a-logs-del-sistema-syslog-logrotate)
+- [b) Procesos (ps, lsof, fuser)](#b-procesos-ps-lsof-fuser)
+- [c) Monitorización de recursos](#c-monitorización-de-recursos-cpu-memoria-swap-red-y-disco)
+- [d) Tareas programadas (cron)](#d-tareas-programadas-cron)
+- [e) Búsqueda de ficheros y directorios (find)](#e-búsqueda-de-ficheros-y-directorios-find)
+- [f) Copias y backup (cp, rsync, tar)](#f-copias-y-backup-de-ficheros-y-directorios-cp-rsync-tar)
 
-## 7. Discos, Filesystems y LVM
-- [7.a) Identificación de discos y multipath](#7a-identificación-de-discos-y-multipath)
-- [7.b) Configuración de particiones](#7b-configuración-de-particiones)
-- [7.c) Sistemas de ficheros](#7c-sistemas-de-ficheros)
-- [7.d) Gestión de LVM](#7d-gestión-de-lvm)
+## 6. Discos, Filesystems y LVM
+- [a) Identificación de discos y multipath](#a-identificación-de-discos-y-multipath)
+- [b) Configuración de particiones](#b-configuración-de-particiones)
+- [c) Sistemas de ficheros](#c-sistemas-de-ficheros)
+- [d) Gestión de LVM](#d-gestión-de-lvm-pvs-vgs-lvs-y-filesystems)
 
-## 8. Gestión de Paquetes
-- [8.a) Licencias](#8a-licencias)
-- [8.b) Repositorios y gestores de paquetes](#8b-repositorios-y-gestores-de-paquetes)
+## 7. Gestión de Paquetes
+- [a) Licencias](#a-licencias)
+- [b) Repositorios y gestores de paquetes](#b-repositorios-y-gestores-de-paquetes)
+
+---
 ## Introducción a Linux
 ### Estructura de directorios de Linux
 #### /
