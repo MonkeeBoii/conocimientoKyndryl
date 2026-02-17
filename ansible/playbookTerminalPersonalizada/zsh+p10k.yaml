@@ -6,6 +6,7 @@
     instalar_kitty: true
     cambiar_tema: true
     tema_default: true
+    default_conf: true
     zsh_theme: "amuse"
   tasks:
     - name: comprobar paquetes
@@ -63,4 +64,9 @@
         line: 'ZSH_THEME="powerlevel10k/powerlevel10k"'
         backup: yes
       when: tema_default and cambiar_tema
-
+    
+    - name: copiar conf por defecto
+      ansible.builtin.copy:
+        src: "template.p10k"
+        dest: "/home/{{ user }}/.p10k.zsh"
+      when: default_conf
