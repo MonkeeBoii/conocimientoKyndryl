@@ -1,0 +1,139 @@
+- name: playbook que compare particiones
+  hosts: [playbookUsrVar]
+  become: true
+  vars:
+    minimal_available_gb: 2
+    paths_to_check:
+      - /var
+      - /usr
+    equal_mount_points: false
+    teams_webhook_url: "https://outlook.office.com/webhook/" #necesito la URL del webhook de Teams para enviar el informe
+  tasks:
+
+    ###############################################################################
+    ######  BLOQUE DE OBTENCIÓN DE DATOS DE PUNTOS DE MONTAJE Y CAPACIDAD    ######
+    ###############################################################################
+
+    - name: obtener ruta de montaje para cada ruta solicitada
+      ansible.builtin.shell: df -h {{ item }} | tail -1 | awk '{print $6}'
+      loop: "{{ paths_to_check }}"
+      register: mount_results
+
+    - name: obtener capacidad disponible por cada punto de montaje
+      ansible.builtin.shell: df -h {{ item.stdout }} | tail -1 | awk '{print $4}'
+      loop: "{{ mount_results.results }}"
+      register: avail_results
+      when: item.stdout is defined
+
+
+      ##############################################################################
+      ######         BLOQUE DE INFORME Y COMPROBACIÓN DE PUNTOS DE MONTAJE    ######
+      ##############################################################################
+    
+
+    - name: construir informe por ruta
+      set_fact:
+        paths_report: "{{ paths_report | default([]) + [ {'path': paths_to_check[item_index], 'mount_point': mount_results.results[item_index].stdout, 'is_root': (mount_results.results[item_index].stdout == '/'), 'available': (avail_results.results[item_index].stdout if avail_results is defined else 'N/A')} ] }}"
+      loop: "{{ range(0, paths_to_check | length) | list }}"
+      loop_control:
+        loop_var: item_index
+
+    - name: comprobar si todos los puntos de montaje son iguales
+      set_fact:
+        equal_mount_points: "{{ (paths_report | map(attribute='mount_point') | list | unique | length) == 1 }}"
+
+    - name: mostrar informe detallado
+      debug:
+        msg: |
+          {% for r in paths_report %}
+          Ruta comprobada: {{ r.path }}
+          Punto de montaje: {{ r.mount_point }}
+          Es root: {{ r.is_root }}
+          Capacidad disponible: {{ r.available }}
+          ---
+          {% endfor %}
+
+    - name: mostrar si todos los puntos de montaje son iguales
+      debug:
+        msg: "¿Las rutas de montaje son iguales? {{ equal_mount_points }}"
+
+      ############################################################################
+      ######         DEBUG DE TAMAÑO                                        ######
+      ############################################################################
+
+    - name: comprobar si hay 2G libre en cada ruta si no estan en root
+      debug:
+        msg: "¿Hay al menos 2G disponibles en {{ item.path }}? {{ (item.available | regex_replace(',', '.') | regex_replace('G', '') | float) >= minimal_available_gb }}"
+      when: item.is_root == false and not equal_mount_points and item.available != 'N/A'
+      loop: "{{ paths_report }}"
+
+    - name: comprobar si hay 2G libre en cada ruta si una de ellas es root
+      debug:
+        msg: "¿Hay al menos 2G disponibles en {{ item.path }}? {{ (item.available | regex_replace(',', '.') | regex_replace('G', '') | float) >= minimal_available_gb }}"
+      when: not equal_mount_points and item.is_root == true and item.available != 'N/A'
+      loop: "{{ paths_report }}"
+
+    - name: comprobar si hay 4G libre si ambas son root
+      debug:
+        msg: "¿Hay al menos 4G disponibles en root? {{ (item.available | regex_replace(',', '.') | regex_replace('G', '') | float) >= minimal_available_gb * 2 }}"
+      when: equal_mount_points and item.available != 'N/A'
+      loop: "{{ paths_report }}"
+
+      ############################################################################
+      ######         BLOQUES DE TRABAJO DE CADA CASO                        ######
+      ############################################################################
+
+#    - name: Caso A — Ninguna ruta es root (comprobar 2G en cada una)
+#      block:
+#        - name: Verificar >= 2G en cada ruta no-root
+#          # TODO
+#          when: item.available != 'N/A'
+#      when: not equal_mount_points and (paths_report | selectattr('is_root','equalto',False) | list | length == (paths_report | length))
+
+#    - name: Caso B — Una de las rutas es root (comprobar 2G en cada una)
+#     block:
+#       - name: Verificar >= 2G en cada ruta (incluye root)
+#          # TODO
+#          loop: "{{ paths_report }}"
+#          when: item.available != 'N/A'
+#      when: not equal_mount_points and (paths_report | selectattr('is_root','equalto',True) | list | length == 1)
+
+#    - name: Caso C — Ambas rutas comparten el mismo punto de montaje (root) (comprobar 4G)
+#      block:
+#        - name: Verificar >= 4G en el punto de montaje común (root)
+#          # TODO
+#          loop: "{{ paths_report }}"
+#          when: item.available != 'N/A'
+#      when: equal_mount_points
+
+    ############################################################################
+    ######         BLOQUES DE INFORME POR TEAMS                           ######
+    ############################################################################
+
+    - name: Enviar informe a Teams
+      uri:
+        url: "{{ teams_webhook_url }}"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body:
+          title: "Informe de puntos de montaje para {{ inventory_hostname }}"
+          text: >-
+            {% for r in paths_report %}Ruta comprobada: {{ r.path }}
+            Punto de montaje: {{ r.mount_point }}
+            Es root: {{ r.is_root }}
+            Capacidad disponible: {{ r.available }}
+            ---
+            {% endfor %}
+            ¿Las rutas de montaje son iguales? {{ equal_mount_points }}
+        body_format: json
+      delegate_to: localhost
+      register: teams_result
+      retries: 3
+      delay: 5
+      until: teams_result.status is defined and teams_result.status | int >= 200 and teams_result.status | int < 300
+      ignore_errors: false
+
+    - name: Mostrar resultado del envío a Teams
+      debug:
+        var: teams_result
