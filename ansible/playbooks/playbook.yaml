@@ -7,6 +7,7 @@
       - /var
       - /usr
     equal_mount_points: false
+    update_packages: false
     gb_avalible_var_after_download: 0
     teams_webhook_url: "https://outlook.office.com/webhook/" #necesito la URL del webhook de Teams para enviar el informe
   tasks:
@@ -19,31 +20,29 @@
       when: ansible_facts["os_family"] == "RedHat"
 
     - name: obtener ruta de montaje para cada ruta solicitada
-      ansible.builtin.shell: df -h {{ item }} | tail -1 | awk '{print $6}'
+      ansible.builtin.shell: LANG=C df -h {{ item }} | tail -1 | awk '{print $6}'
       loop: "{{ paths_to_check }}"
       register: mount_results
 
     - name: obtener capacidad disponible por cada punto de montaje
-      ansible.builtin.shell: df -k {{ item.stdout }} | tail -1 | awk '{print $4}'
+      ansible.builtin.shell: LANG=C df -k {{ item.stdout }} | tail -1 | awk '{print $4}'
       loop: "{{ mount_results.results }}"
       register: avail_results
       when: item.stdout is defined
 
-    - name: Descargar actualizaciones de paquetes sin instalar (RedHat)
-      ansible.builtin.command: dnf upgrade --downloadonly --refresh -y
+    - name: obtener tamaño estimado de descarga de paquetes
+      ansible.builtin.shell: LANG=C dnf upgrade --assumeno | grep -E "size:" | awk '{print $4 " " $5}'
+      register: download_size_raw
       when: ansible_facts["os_family"] == "RedHat"
 
-    - name: obtener capacidad de /var despues de descarga de actualizaciones
-      ansible.builtin.shell: df -k {{ item.stdout }} | tail -1 | awk '{print $4}'
-      loop: "{{ mount_results.results }}"
-      register: after_avail_results
-      when: item.stdout is defined
-
-    - name: set gb_avalible_var_after_download
+    - name: set estimated_download_gb
       set_fact:
-        gb_avalible_var_after_download: "{{ (item.stdout | int) / 1048576.0 }}"
-      loop: "{{ after_avail_results.results }}"
-      when: item.item.item == '/var' and after_avail_results is defined
+        estimated_download_gb: "{{ download_size_raw.stdout }}"
+      when: download_size_raw is defined and download_size_raw.stdout != ''
+
+    - name: Descargar actualizaciones de paquetes sin instalar (RedHat)
+      ansible.builtin.command: dnf upgrade --downloadonly --refresh -y
+      when: ansible_facts["os_family"] == "RedHat" and update_packages
 
       ##############################################################################
       ######         BLOQUE DE INFORME Y COMPROBACIÓN DE PUNTOS DE MONTAJE    ######
@@ -69,7 +68,7 @@
           ¿Está en root?: {{ r.is_root }}
           Capacidad disponible: {{ r.available }}G
           {% endfor %}
-          GB disponibles en /var después de descarga: {{ gb_avalible_var_after_download | default('N/A') }}
+          GB estimados a descargar: {{ estimated_download_gb | default('N/A') }}
           ¿Las rutas de montaje son iguales? {{ equal_mount_points }}
 
     - name: Mostrar información como lista de líneas
@@ -137,26 +136,35 @@
           Punto de montaje: {{ r.mount_point }}
           Es root: {{ r.is_root }}
           Capacidad disponible: {{ r.available }}G
-          GB disponibles en /var después de descarga: {{ gb_avalible_var_after_download | default('N/A') }}
+          GB estimados a descargar: {{ estimated_download_gb | default('N/A') }}G
+          GB disponibles en /var después de descarga: {{ gb_avalible_var_after_download | default('N/A') }}G
           ---
           {% endfor %}
           ¿Las rutas de montaje son iguales? {{ equal_mount_points }}
 
-    - name: Convertir texto en lista de líneas (sin \n)
+    - name: Construir informe consolidado en localhost
+      run_once: true
+      delegate_to: localhost
       set_fact:
-        paths_report_list: "{{ paths_report_lines.split('\n') }}"
+        aggregated_report: |
+          {% for host in groups['playbookUsrVar'] %}
+          Informe para {{ host }}:
+          {{ hostvars[host]['paths_report_lines'] | default(hostvars[host]['paths_report_formatted'] | default('No report disponible')) }}
+          ---
+          {% endfor %}
 
-    - name: Enviar informe a Teams
+    - name: Enviar informe consolidado a Teams (único mensaje)
+      run_once: true
+      delegate_to: localhost
       uri:
         url: "{{ teams_webhook_url }}"
         method: POST
         headers:
           Content-Type: "application/json"
         body:
-          title: "Informe de puntos de montaje para {{ inventory_hostname }}"
-          text: "{{ paths_report_list | join('\n') }}"
+          title: "Informe consolidado de puntos de montaje"
+          text: "{{ aggregated_report }}"
         body_format: json
-      delegate_to: localhost
       register: teams_result
       retries: 3
       delay: 5
