@@ -167,7 +167,7 @@
         aggregated_report: |
           {% for host in groups['playbookUsrVar'] %}
           Informe para {{ host }}:
-          {{ hostvars[host]['paths_report_lines'] | default(hostvars[host]['paths_report_formatted'] | default('No report disponible')) }}
+          {{ hostvars[host]['paths_report_lines'] | default('No report disponible')) }}
           ---
           {% endfor %}
 
