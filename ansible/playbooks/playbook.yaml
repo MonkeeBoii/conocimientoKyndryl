@@ -56,9 +56,10 @@
         estimated_download_gb_str: "{{ ('%.' ~ display_decimals ~ 'f') % (estimated_download_gb | float) }}"
       when: estimated_download_gb is defined
 
+    
     - name: Descargar actualizaciones de paquetes sin instalar (RedHat)
       ansible.builtin.command: dnf upgrade --downloadonly --refresh -y
-      when: ansible_facts["os_family"] == "RedHat" and update_packages
+      when: ansible_facts["os_family"] == "RedHat" and update_packages and (paths_report | selectattr('path','equalto','/var') | map(attribute='available') | first | float) >= minimal_available_gb
 
       ##############################################################################
       ######         BLOQUE DE INFORME Y COMPROBACIÓN DE PUNTOS DE MONTAJE    ######
