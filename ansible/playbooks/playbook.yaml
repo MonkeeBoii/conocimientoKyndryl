@@ -2,7 +2,8 @@
   hosts: [playbookUsrVar]
   become: true
   vars:
-    minimal_available_gb: 2
+    minimal_available_gb: 4
+    display_decimals: 2
     paths_to_check:
       - /var
       - /usr
@@ -35,10 +36,25 @@
       register: download_size_raw
       when: ansible_facts["os_family"] == "RedHat"
 
-    - name: set estimated_download_gb
+    - name: set estimated_download_gb (MB -> GB)
       set_fact:
-        estimated_download_gb: "{{ download_size_raw.stdout }}"
-      when: download_size_raw is defined and download_size_raw.stdout != ''
+        estimated_download_gb: "{{ (download_size_raw.stdout.split()[0] | float / 1024.0) | round(display_decimals) }}"
+      when: download_size_raw is defined and download_size_raw.stdout != '' and 'M' in download_size_raw.stdout
+
+    - name: set estimated_download_gb (GB)
+      set_fact:
+        estimated_download_gb: "{{ (download_size_raw.stdout.split()[0] | float) | round(display_decimals) }}"
+      when: download_size_raw is defined and download_size_raw.stdout != '' and 'G' in download_size_raw.stdout
+
+    - name: set estimated_download_gb (fallback)
+      set_fact:
+        estimated_download_gb: "{{ (download_size_raw.stdout.split()[0] | float) | round(display_decimals) }}"
+      when: download_size_raw is defined and download_size_raw.stdout != '' and ('M' not in download_size_raw.stdout and 'G' not in download_size_raw.stdout)
+
+    - name: Formatear estimated_download_gb como string con decimales
+      set_fact:
+        estimated_download_gb_str: "{{ ('%.' ~ display_decimals ~ 'f') % (estimated_download_gb | float) }}"
+      when: estimated_download_gb is defined
 
     - name: Descargar actualizaciones de paquetes sin instalar (RedHat)
       ansible.builtin.command: dnf upgrade --downloadonly --refresh -y
@@ -51,7 +67,7 @@
 
     - name: construir informe por ruta
       set_fact:
-        paths_report: "{{ paths_report | default([]) + [dict(path=paths_to_check[item_index], mount_point=mount_results.results[item_index].stdout, is_root=(mount_results.results[item_index].stdout == '/'), available=((avail_results.results[item_index].stdout | int) / 1048576.0 if avail_results is defined else 'N/A'))] }}"
+        paths_report: "{{ paths_report | default([]) + [dict(path=paths_to_check[item_index], mount_point=mount_results.results[item_index].stdout, is_root=(mount_results.results[item_index].stdout == '/'), available=(( (avail_results.results[item_index].stdout | int) / 1048576.0 ) | round(display_decimals) if avail_results is defined else 'N/A'), available_str=(('%.' ~ display_decimals ~ 'f') % (((avail_results.results[item_index].stdout | int) / 1048576.0) | float) if avail_results is defined else 'N/A'))] }}"
       loop: "{{ range(0, paths_to_check | length) | list }}"
       loop_control:
         loop_var: item_index
@@ -65,10 +81,12 @@
         paths_report_formatted: |
           {% for r in paths_report %}
           Punto de montaje de {{ r.path }}: {{ r.mount_point }}
+          ¿Hay suficiente espacio?: {{ (r.available | float) >= minimal_available_gb }}
           ¿Está en root?: {{ r.is_root }}
-          Capacidad disponible: {{ r.available }}G
+          Capacidad disponible: {{ r.available_str }}G
+          
           {% endfor %}
-          GB estimados a descargar: {{ estimated_download_gb | default('N/A') }}
+          GB estimados a descargar: {{ estimated_download_gb_str | default(estimated_download_gb | default('N/A')) }}G
           ¿Las rutas de montaje son iguales? {{ equal_mount_points }}
 
     - name: Mostrar información como lista de líneas
@@ -79,23 +97,23 @@
       ######         DEBUG DE TAMAÑO                                        ######
       ############################################################################
 
-    - name: comprobar si hay 2G libre en cada ruta si no estan en root
-      debug:
-        msg: "¿Hay al menos 2G disponibles en {{ item.path }}? {{ item.available | float >= minimal_available_gb }}"
-      when: item.is_root == false and not equal_mount_points and item.available != 'N/A'
-      loop: "{{ paths_report }}"
+#    - name: comprobar si hay 2G libre en cada ruta si no estan en root
+#      debug:
+#        msg: "¿Hay al menos 2G disponibles en {{ item.path }}? {{ item.available | float >= minimal_available_gb }}"
+#      when: item.is_root == false and not equal_mount_points and item.available != 'N/A'
+#      loop: "{{ paths_report }}"
 
-    - name: comprobar si hay 2G libre en cada ruta si una de ellas es root
-      debug:
-        msg: "¿Hay al menos 2G disponibles en {{ item.path }}? {{ item.available | float >= minimal_available_gb }}"
-      when: not equal_mount_points and item.is_root == true and item.available != 'N/A'
-      loop: "{{ paths_report }}"
+#    - name: comprobar si hay 2G libre en cada ruta si una de ellas es root
+#      debug:
+#        msg: "¿Hay al menos 2G disponibles en {{ item.path }}? {{ item.available | float >= minimal_available_gb }}"
+#      when: not equal_mount_points and item.is_root == true and item.available != 'N/A'
+#      loop: "{{ paths_report }}"
 
-    - name: comprobar si hay 4G libre si ambas son root
-      debug:
-        msg: "¿Hay al menos 4G disponibles en root? {{ item.available | float >= minimal_available_gb * 2 }}"
-      when: equal_mount_points and item.available != 'N/A'
-      loop: "{{ paths_report }}"
+#    - name: comprobar si hay 4G libre si ambas son root
+#      debug:
+#        msg: "¿Hay al menos 4G disponibles en root? {{ item.available | float >= minimal_available_gb * 2 }}"
+#      when: equal_mount_points and item.available != 'N/A'
+#      loop: "{{ paths_report }}"
 
       ############################################################################
       ######         BLOQUES DE TRABAJO DE CADA CASO                        ######
@@ -132,14 +150,13 @@
       set_fact:
         paths_report_lines: |
           {% for r in paths_report %}
-          Ruta comprobada: {{ r.path }}
-          Punto de montaje: {{ r.mount_point }}
-          Es root: {{ r.is_root }}
-          Capacidad disponible: {{ r.available }}G
-          GB estimados a descargar: {{ estimated_download_gb | default('N/A') }}G
-          GB disponibles en /var después de descarga: {{ gb_avalible_var_after_download | default('N/A') }}G
-          ---
+          Punto de montaje de {{ r.path }}: {{ r.mount_point }}
+          ¿Hay suficiente espacio?: {{ r.available | float >= minimal_available_gb }}
+          ¿Está en root?: {{ r.is_root }}
+          Capacidad disponible: {{ r.available_str }}G
+          
           {% endfor %}
+          GB estimados a descargar: {{ estimated_download_gb_str | default(estimated_download_gb | default('N/A')) }}G
           ¿Las rutas de montaje son iguales? {{ equal_mount_points }}
 
     - name: Construir informe consolidado en localhost
