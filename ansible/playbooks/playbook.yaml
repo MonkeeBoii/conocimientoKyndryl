@@ -9,7 +9,7 @@
       - /usr
     equal_mount_points: false
     update_packages: false
-    gb_avalible_var_after_download: 0
+    estimated_download_gb: 0
     teams_webhook_url: "https://outlook.office.com/webhook/" #necesito la URL del webhook de Teams para enviar el informe
   tasks:
 
@@ -147,31 +147,57 @@
     ######         BLOQUES DE INFORME POR TEAMS                           ######
     ############################################################################
 
-    - name: Construir informe formateado como lista (Forma A)
-      set_fact:
-        paths_report_lines: |
-          {% for r in paths_report %}
-          Punto de montaje de {{ r.path }}: {{ r.mount_point }}
-          ¿Hay suficiente espacio?: {{ r.available | float >= minimal_available_gb }}
-          ¿Está en root?: {{ r.is_root }}
-          Capacidad disponible: {{ r.available_str }}G
-          
-          {% endfor %}
-          GB estimados a descargar: {{ estimated_download_gb_str | default(estimated_download_gb | default('N/A')) }}G
-          ¿Las rutas de montaje son iguales? {{ equal_mount_points }}
-
-    - name: Construir informe consolidado en localhost
+    
+    - name: Inicializar lista de hosts que necesitan espacio
       run_once: true
       delegate_to: localhost
       set_fact:
-        aggregated_report: |
-          {% for host in groups['playbookUsrVar'] %}
-          Informe para {{ host }}:
-          {{ hostvars[host]['paths_report_lines'] | default('No report disponible')) }}
-          ---
-          {% endfor %}
+        hosts_necesitan_espacio: []
 
-    - name: Enviar informe consolidado a Teams (único mensaje)
+    - name: Construir lista de hosts que no cumplen minimal_available_gb
+      run_once: true
+      delegate_to: localhost
+      set_fact:
+        hosts_necesitan_espacio: "{{ hosts_necesitan_espacio + [item] }}"
+      loop: "{{ groups['playbookUsrVar'] | default([]) }}"
+      when:
+        - hostvars[item].paths_report is not defined
+          or (
+            (
+              hostvars[item].paths_report
+              | selectattr('available', 'defined')
+              | selectattr('available', 'float')
+              | selectattr('available', 'lt', minimal_available_gb)
+              | list
+            ) | length
+          ) > 0
+
+    - name: Construir mensaje de Teams solo con hosts que necesitan aumentar espacio
+      run_once: true
+      delegate_to: localhost
+      set_fact:
+        mensaje_teams_hosts_faltantes: >-
+          {% if hosts_necesitan_espacio|length > 0 %}
+          Los siguientes hosts necesitan aumentar el espacio disponible (menos de {{ minimal_available_gb }}GB):
+
+          {% for host in hosts_necesitan_espacio %}
+          - {{ host }}: 
+            {% if hostvars[host].paths_report is defined %}
+            {% for r in hostvars[host].paths_report %}
+            {% if r.available != 'N/A' and r.available | float < minimal_available_gb %}
+            {{ r.path }} ({{ r.mount_point }}): {{ r.available_str }}G disponibles
+            {% endif %}
+            {% endfor %}
+            {% else %}
+            No se pudo obtener información de espacio disponible.
+            {% endif %}
+
+          {% endfor %}
+          {% else %}
+          Todos los hosts cumplen con el espacio mínimo requerido ({{ minimal_available_gb }}GB).
+          {% endif %}
+
+    - name: Enviar lista de hosts que necesitan aumentar espacio a Teams
       run_once: true
       delegate_to: localhost
       uri:
@@ -180,11 +206,16 @@
         headers:
           Content-Type: "application/json"
         body:
-          title: "Informe consolidado de puntos de montaje"
-          text: "{{ aggregated_report }}"
+          title: "Hosts que necesitan aumentar espacio"
+          text: "{{ mensaje_teams_hosts_faltantes.split('\n') }}"
         body_format: json
       register: teams_result
       retries: 3
       delay: 5
       until: teams_result.status is defined and teams_result.status | int >= 200 and teams_result.status | int < 300
       ignore_errors: false
+    
+    - name: Mostrar información de los hosts que necesitan aumentar espacio
+      run_once: true
+      debug:
+        msg: "{{ mensaje_teams_hosts_faltantes.split('\n') }}"
