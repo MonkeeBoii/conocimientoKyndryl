@@ -10,7 +10,7 @@
     equal_mount_points: false
     update_packages: false
     estimated_download_gb: 0
-    teams_webhook_url: "https://outlook.office.com/webhook/" #necesito la URL del webhook de Teams para enviar el informe
+    teams_webhook_url: "https://kyndryl.webhook.office.com/webhookb2/b78cf8ee-1583-4a5a-b33c-e76914257a84@f260df36-bc43-424c-8f44-c85226657b01/IncomingWebhook/bbdf7c56b7174d7eb15bf20979b4b642/2d8022cc-99b2-4610-a942-d364956ad5be/V2_1uVD902Aw2qGsCxM-AivcQrKyiQ4MFSbo7MrfMrvLY1" #necesito la URL del webhook de Teams para enviar el informe
   tasks:
 
     ###############################################################################
@@ -178,23 +178,23 @@
       set_fact:
         mensaje_teams_hosts_faltantes: >-
           {% if hosts_necesitan_espacio|length > 0 %}
-          Los siguientes hosts necesitan aumentar el espacio disponible (menos de {{ minimal_available_gb }}GB):
+          **Los siguientes hosts necesitan aumentar el espacio disponible (menos de {{ minimal_available_gb }}GB):**
 
           {% for host in hosts_necesitan_espacio %}
-          - {{ host }}: 
+          - **{{ host }}**
             {% if hostvars[host].paths_report is defined %}
             {% for r in hostvars[host].paths_report %}
             {% if r.available != 'N/A' and r.available | float < minimal_available_gb %}
-            {{ r.path }} ({{ r.mount_point }}): {{ r.available_str }}G disponibles
+              • {{ r.path }} ({{ r.mount_point }}): **{{ r.available_str }}G** disponibles
             {% endif %}
             {% endfor %}
             {% else %}
-            No se pudo obtener información de espacio disponible.
+              • No se pudo obtener información de espacio disponible.
             {% endif %}
 
           {% endfor %}
           {% else %}
-          Todos los hosts cumplen con el espacio mínimo requerido ({{ minimal_available_gb }}GB).
+          **Todos los hosts cumplen con el espacio mínimo requerido ({{ minimal_available_gb }}GB).**
           {% endif %}
 
     - name: Enviar lista de hosts que necesitan aumentar espacio a Teams
@@ -207,7 +207,7 @@
           Content-Type: "application/json"
         body:
           title: "Hosts que necesitan aumentar espacio"
-          text: "{{ mensaje_teams_hosts_faltantes.split('\n') }}"
+          text: "{{ mensaje_teams_hosts_faltantes }}"
         body_format: json
       register: teams_result
       retries: 3
