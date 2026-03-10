@@ -23,8 +23,7 @@ sudo firewall-cmd --reload
 
 ### Cliente
 
-Para el cliente yo edite el archivo `/etc/fstab` y aqui añadi mi carpeta, ponemos 
-`<ip.servidor>:<ruta.carpeta> <ruta.montaje> nfs defaults 0 0` y despues hacemos `sudo mount -a`
+Para el cliente yo edite el archivo `/etc/fstab` y aqui añadi mi carpeta, ponemos `<ip.servidor>:<ruta.carpeta> <ruta.montaje> nfs defaults 0 0` y despues hacemos `sudo mount -a`
 
 ## INSTALACION SFTP
 
@@ -57,6 +56,7 @@ sudo restorecon -Rv /sftp
 
 Despues reiniciamos el servicio `sudo systemctl restart sshd` para que haga los logs correctamente tendremos que configurar **rsyslog**.
 Añadir al archivo `/etc/rsyslog.d/sftp.conf` si no exite el archivo lo creamos y le ponemos dentro.
+Para el socket que vamos a crear necesitamos crear una carpeta donde se va a colocar el socket y darle permisos '0771', tambien el owner y el grupo como root.
 
 ```sh
 input(type="imuxsock" Socket="<ruta.enjaulamiento.usuario>/dev/log" CreatePath="on")
