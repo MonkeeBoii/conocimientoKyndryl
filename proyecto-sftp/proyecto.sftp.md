@@ -4,7 +4,7 @@
 
 vamos a tener 4 maquinas, dos van a funcionar como servidores sftp, 1 como servidor nfs y la ultima que va a ser el cliente de los dos servidores sftp.
 
-Para esto vamos a necesitar instalar en el cliente y los dos servidores el paquete `openssh`, y en los dos servidores sftp y en el servidor nfs el paquete `nfs-utils`.
+Para esto vamos a necesitar instalar en el **cliente** y los **dos servidores** el paquete `openssh`, y en los **dos servidores sftp** y en el **servidor nfs** el paquete `nfs-utils`.
 
 ## Instalacion NFS
 
@@ -13,7 +13,7 @@ Para esto vamos a necesitar instalar en el cliente y los dos servidores el paque
 He creado mi carpeta con el nombre **sftp**, le damos permisos con el comando `chmod 755 /sftp`.
 Despues de esto vamos a editar el archivo `/etc/exports` y vamos a poner nuestra carpeta a compartir y la red en la que la vamos a compartir tanto los permisos que vamos a tener.
 `/sftp  <ip.de.nuestra.red/mascara.de.nuestra.red>(<permisos>)`, yo en los permisos he puesto `rw,sync,no_subtree_check`.
-Hecho esto podemos arrancar el servicio nfs, `sudo systemctl enable --now nfs-server` y aplicamos los cambios del archivo exports `sudo exports -rav`.
+Hecho esto podemos arrancar el servicio nfs, `sudo systemctl enable --now nfs-server` y aplicamos los cambios del archivo exports `sudo exportfs -rav`.
 Yo he tenido que abrir el firewall para el nfs.
 
 ```sh
@@ -66,6 +66,8 @@ local6.*        /var/log/sftp.log
 
 Habilitar los socks locales en `/etc/rsyslog.conf` cambiando el parametro `SysSock.Use="off"` a `SysSock.Use="on"`.
 despues de esto vamos a habilitar que nuestro rsyslog pueda crear sockets
+
+Comando para desabilitar el SELinux `setenforce 0`.
 
 ```sh
 sudo semanage fcontext -a -t syslogd_var_run_t "<ruta.enjaulamiento.usaurio>/dev(/.*)?"
