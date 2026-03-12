@@ -1,0 +1,177 @@
+- name: Configurar usuario SFTP con logging
+  hosts: sftp
+  become: true
+  vars:
+    nomenclatura: sftpuser_
+    usuario_sftp: usuario_34
+    carpeta_compartida: /sftp/compartida
+    crear_solo_usuario: false
+    crear_usuario_sftp: true
+    crear_grupo_sftp: true
+    configurar_sshd: true
+    configurar_rsyslog: true
+
+  tasks:
+    - name: Crear grupo SFTP
+      group:
+        name: sftp
+        state: present
+      when: not crear_solo_usuario and crear_grupo_sftp
+
+    - name: Buscar último UID de usuarios con la nomenclatura
+      shell: "grep '{{ nomenclatura }}' /etc/passwd | tail -n1 | cut -d: -f3"
+      register: ultimo_usuario
+      changed_when: false
+      when: not crear_solo_usuario
+
+    - name: comprobacion de si el usuario existe
+      shell: "id -u {{ nomenclatura }}{{ usuario_sftp }}"
+      register: usuario_existe
+      failed_when: false
+      changed_when: false
+      when: crear_usuario_sftp
+
+    - name: Crear usuario SFTP
+      user:
+        name: "{{ nomenclatura }}{{ usuario_sftp }}"
+        group: sftp
+        uid: "{{ ultimo_usuario.stdout | int + 1 if ultimo_usuario.stdout else 9000 }}"
+        home: "{{ carpeta_compartida }}/{{ nomenclatura }}{{ usuario_sftp }}"
+        shell: /bin/bash
+        create_home: yes
+        state: present
+      when: crear_usuario_sftp and not usuario_existe.stdout
+
+    - name: Configurar home seguro para chroot
+      file:
+        path: "{{ carpeta_compartida }}/{{ nomenclatura }}{{ usuario_sftp }}"
+        owner: root
+        group: sftp
+        mode: "0755"
+        state: directory
+      when: not usuario_existe.stdout and crear_usuario_sftp
+
+    - name: Crear subdirectorio escribible para uploads
+      file:
+        path: "{{ carpeta_compartida }}/{{ nomenclatura }}{{ usuario_sftp }}/upload"
+        owner: "{{ nomenclatura }}{{ usuario_sftp }}"
+        group: sftp
+        mode: "0755"
+        state: directory
+      when: not usuario_existe.stdout and crear_usuario_sftp
+
+    - name: Crear carpeta .ssh dentro del subdirectorio escribible
+      file:
+        path: "{{ carpeta_compartida }}/{{ nomenclatura }}{{ usuario_sftp }}/.ssh"
+        owner: "{{ nomenclatura }}{{ usuario_sftp }}"
+        group: sftp
+        mode: "0700"
+        state: directory
+      when: not usuario_existe.stdout and crear_usuario_sftp
+
+    - name: crear claves para ssh
+      command: "ssh-keygen -t ed25519 -f {{ carpeta_compartida }}/{{ nomenclatura }}{{ usuario_sftp }}/.ssh/id_rsa -N ''"
+      when: not usuario_existe.stdout and crear_usuario_sftp
+
+    - name: generar archivo authorized_keys
+      command: "cp {{ carpeta_compartida }}/{{ nomenclatura }}{{ usuario_sftp }}/.ssh/id_rsa.pub {{ carpeta_compartida }}/{{ nomenclatura }}{{ usuario_sftp }}/.ssh/authorized_keys"
+      when: not usuario_existe.stdout and crear_usuario_sftp
+
+    - name: descargar clave en host
+      fetch:
+        src: "{{ carpeta_compartida }}/{{ nomenclatura }}{{ usuario_sftp }}/.ssh/id_rsa"
+        dest: "./claves/{{ nomenclatura }}{{ usuario_sftp }}_id_rsa"
+        flat: yes
+      when: not usuario_existe.stdout and crear_usuario_sftp
+
+    - name: asegurar permisos 600 en la clave descargada
+      file:
+        path: "./claves/{{ nomenclatura }}{{ usuario_sftp }}_id_rsa"
+        mode: "0600"
+      delegate_to: localhost
+      run_once: true
+      when: not usuario_existe.stdout and crear_usuario_sftp
+
+    - name: Cambiar shell a nologin
+      user:
+        name: "{{ nomenclatura }}{{ usuario_sftp }}"
+        shell: /sbin/nologin
+      when: crear_usuario_sftp and not usuario_existe.stdout
+
+    - name: eliminar configuracion anterior de sshd
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^Subsystem sftp'
+        state: absent
+    
+    - name: Configurar SSHD para SFTP
+      blockinfile:
+        path: /etc/ssh/sshd_config
+        marker: "# {mark} ANSIBLE SFTP CONFIG"
+        block: |
+          Match Group sftp
+            ChrootDirectory %h
+            ForceCommand internal-sftp -l INFO -f LOCAL6
+            AllowTcpForwarding no
+            X11Forwarding no
+        state: present
+      when: not crear_solo_usuario and configurar_sshd
+
+    - name: Crear carpeta para el socket de rsyslog
+      file:
+        path: "{{ carpeta_compartida }}/dev"
+        state: directory
+        mode: '0771'
+      when: not crear_solo_usuario and configurar_rsyslog
+
+    - name: Crear archivo de configuración para rsyslog
+      file: 
+        path: /etc/rsyslog.d/sftp.conf
+        state: touch
+      when: not crear_solo_usuario and configurar_rsyslog
+
+    - name: Modificar rsyslog para SFTP
+      blockinfile: 
+        path: /etc/rsyslog.d/sftp.conf
+        block: |
+          input(type="imuxsock" Socket="{{ carpeta_compartida }}/dev/log" CreatePath="on")
+          local6.*        /var/log/sftp.log
+          & stop
+        state: present
+      when: not crear_solo_usuario and configurar_rsyslog
+
+    - name: Habilitar los sockets locales para rsyslog
+      replace:
+        path: /etc/rsyslog.conf
+        regexp: 'SysSock\.Use="off"'
+        replace: 'SysSock.Use="on"'
+      when: not crear_solo_usuario and configurar_rsyslog
+
+    - name: desactiva SELinux temporalmente
+      command: setenforce 0
+      when: not crear_solo_usuario and configurar_rsyslog
+
+    - name: crear carpeta de montaje en home del usuario SFTP
+      file:
+        path: "{{ carpeta_compartida }}//{{ nomenclatura }}{{ usuario_sftp }}/dev"
+        state: directory
+        mode: '0771'
+      when: not crear_solo_usuario and configurar_rsyslog
+    
+    - name: Montar dev en la carpeta home del usuario SFTP
+      mount:
+        name: "{{ carpeta_compartida }}/{{ nomenclatura }}{{ usuario_sftp }}/dev"
+        src: "{{ carpeta_compartida }}/dev"
+        fstype: none
+        opts: bind
+        state: mounted
+      when: not crear_solo_usuario and configurar_rsyslog
+
+    - name: Reiniciar servicios
+      service:
+        name: "{{ item }}"
+        state: restarted
+      loop:
+        - sshd
+        - rsyslog
+      when: not crear_solo_usuario and (configurar_sshd or configurar_rsyslog)
