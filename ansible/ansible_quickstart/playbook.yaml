@@ -1,5 +1,5 @@
 - name: mi primer playbook
-  hosts: myhosts
+  hosts: all
   become: true
   tasks:
     - name: instalar packetes servidor
