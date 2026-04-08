@@ -1,7 +1,10 @@
 - name: mi primer playbook
   hosts: all
   tasks:
-    
+    - name: guardar informacion de la cpu del sistema
+      ansible.builtin.command: "timeout 2 btop --tty_on"
+      register: top_info
+      
     - name: mostrar la cpu info
       ansible.builtin.debug: 
         msg: "{{ top_info.stdout }}"
