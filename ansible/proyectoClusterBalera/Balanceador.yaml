@@ -1,0 +1,83 @@
+- name: Configurar y comprobar HAProxy en AlmaLinux
+  hosts: haproxy
+  become: true
+  vars:
+    haproxy_backends:
+      - name: app1
+        host: 10.0.0.10
+        port: 80
+      - name: app2
+        host: 10.0.0.11
+        port: 80
+
+  tasks:
+    - name: Instalar HAProxy
+      ansible.builtin.yum:
+        name: haproxy
+        state: present
+
+    - name: desactivar SELinux en el arranque
+      ansible.builtin.replace:
+        path: /etc/selinux/config
+        regexp: '^SELINUX=enforcing'
+        replace: 'SELINUX=permissive'
+
+    - name: Crear directorio /etc/haproxy si no existe
+      ansible.builtin.file:
+        path: /etc/haproxy
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Desplegar configuración de HAProxy desde plantilla
+      ansible.builtin.template:
+        src: templates/haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart haproxy
+
+    - name: Asegurar firewalld instalado
+      ansible.builtin.yum:
+        name: firewalld
+        state: present
+
+    - name: Iniciar y habilitar firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: Abrir puerto HTTP en firewalld
+      ansible.posix.firewalld:
+        port: 80/tcp
+        permanent: true
+        immediate: true
+        state: enabled
+
+    - name: Abrir puerto HTTPS en firewalld
+      ansible.posix.firewalld:
+        port: 443/tcp
+        permanent: true
+        immediate: true
+        state: enabled
+
+    - name: Habilitar y arrancar servicio haproxy
+      ansible.builtin.service:
+        name: haproxy
+        state: started
+        enabled: true
+
+    - name: Esperar a que el puerto 80 esté escuchando
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 80
+        timeout: 15
+
+  handlers:
+    - name: restart haproxy
+      ansible.builtin.service:
+        name: haproxy
+        state: restarted

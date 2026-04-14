@@ -1,0 +1,110 @@
+- name: aprovisionamiento de usuarios SFTP
+  hosts: all
+  become: yes
+
+  vars_prompt:
+    - name: nfs_path
+      prompt: "Introduce la ruta NFS (ej: 192.168.1.10:/data)"
+      private: no
+
+    - name: mount_point
+      prompt: "Introduce el punto de montaje (ej: /mnt/data)"
+      private: no
+
+  tasks:
+    - name: Instalar paquetes necesarios
+      ansible.builtin.package:
+        name:
+          - nfs-common
+          - openssh-server
+          - rsyslog
+        state: present
+    
+    - name: comprobar si existe la carpeta de montaje
+      ansible.builtin.stat:
+        path: "{{ mount_point }}"
+      register: mount_point_stat
+
+    - name: Crear directorio de montaje si no existe
+      ansible.builtin.file:
+        path: "{{ mount_point }}"
+        state: directory
+        mode: '0755'
+      when: not mount_point_stat.stat.exists
+
+    - name: Comprobar si ya está montado
+      ansible.builtin.command: mountpoint -q {{ mount_point }}
+      register: mount_check
+      ignore_errors: true
+      changed_when: false
+
+    - name: Montar NFS y añadir a fstab
+      ansible.builtin.mount:
+        src: "{{ nfs_path }}"
+        path: "{{ mount_point }}"
+        fstype: nfs
+        opts: defaults
+        state: mounted
+      when: mount_check.rc != 0
+    
+    - name: crear grupo sftp
+      ansible.builtin.group:
+        name: sftp
+        state: present
+
+    - name: eliminar configuracion anterior de sshd
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^Subsystem sftp'
+        state: absent
+    
+    - name: Configurar SSHD para SFTP
+      blockinfile:
+        path: /etc/ssh/sshd_config
+        marker: "# {mark} ANSIBLE SFTP CONFIG"
+        block: |
+          Match Group sftp
+            ChrootDirectory %h
+            ForceCommand internal-sftp -l INFO -f LOCAL6
+            AllowTcpForwarding no
+            X11Forwarding no
+        state: present
+    
+    - name: Crear carpeta para el socket de rsyslog
+      file:
+        path: "{{ mount_point }}/dev"
+        state: directory
+        mode: '0771'
+
+    - name: Crear archivo de configuración para rsyslog
+      file: 
+        path: /etc/rsyslog.d/sftp.conf
+        state: touch
+
+    - name: Modificar rsyslog para SFTP
+      blockinfile: 
+        path: /etc/rsyslog.d/sftp.conf
+        block: |
+          input(type="imuxsock" Socket="{{ mount_point }}/dev/log" CreatePath="on")
+          local6.*        /var/log/sftp.log
+          & stop
+        state: present
+
+    - name: Habilitar los sockets locales para rsyslog
+      replace:
+        path: /etc/rsyslog.conf
+        regexp: 'SysSock\.Use="off"'
+        replace: 'SysSock.Use="on"'
+      when: not crear_solo_usuario and configurar_rsyslog
+
+    - name: Desactivar SELinux
+      ansible.posix.selinux:
+        state: disabled
+
+    - name: Reiniciar servicios
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: restarted
+      loop:
+        - sshd
+        - rsyslog

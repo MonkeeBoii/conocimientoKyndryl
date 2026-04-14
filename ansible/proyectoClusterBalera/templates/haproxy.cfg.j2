@@ -1,0 +1,26 @@
+global
+  log /dev/log    local0
+  log /dev/log    local1 notice
+  daemon
+  maxconn 2048
+
+defaults
+  log     global
+  mode    http
+  option  httplog
+  option  dontlognull
+  option dontlognull
+  timeout connect 5s
+  timeout client  50s
+  timeout server  50s
+
+frontend http_front
+  bind *:80
+  default_backend wordpress_back
+
+backend wordpress_back
+    balance roundrobin
+    option httpchk
+{% for b in haproxy_backends %}
+  server {{ b.name }} {{ b.host }}:{{ b.port }} check
+{% endfor %}
