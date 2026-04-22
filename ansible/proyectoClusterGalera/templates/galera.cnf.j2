@@ -1,0 +1,23 @@
+[mysqld]
+bind-address=0.0.0.0
+
+binlog_format=ROW
+default_storage_engine=InnoDB
+innodb_autoinc_lock_mode=2
+
+wsrep_on=ON
+wsrep_provider=/usr/lib64/galera/libgalera_smm.so
+
+wsrep_cluster_name="{{ galera_cluster_name }}"
+wsrep_cluster_address="gcomm://{{ galera_ips_internal | join(',') }}"
+
+{% set idx = 0 %}
+{% if inventory_hostname in groups['galera'] %}
+{% set idx = groups['galera'].index(inventory_hostname) %}
+{% endif %}
+
+wsrep_node_address="{{ galera_ips_internal[idx] }}"
+wsrep_node_name="{{ 'host' ~ (idx + 1) }}"
+
+
+wsrep_sst_method=rsync

@@ -5,8 +5,8 @@ define( 'DB_PASSWORD', '{{ wp_db_password }}' );
 define( 'DB_HOST', '{{ db_host_override | default("localhost") }}' );
 define( 'DB_CHARSET', 'utf8mb4' );
 define( 'DB_COLLATE', '' );
-define( 'WP_HOME', '{{ wp_db_home }}' );
-define( 'WP_SITEURL', '{{ wp_db_siteurl }}' );
+define( 'WP_HOME', '{{ wp_url }}' );
+define( 'WP_SITEURL', '{{ wp_url }}' );
 
 $table_prefix = 'wp_';
 

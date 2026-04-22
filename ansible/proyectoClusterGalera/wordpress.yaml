@@ -4,26 +4,25 @@
   vars:
     wp_install_dir: /var/www/html/wordpress
     wp_archive_url: https://es.wordpress.org/latest-es_ES.tar.gz
-
   vars_prompt:
     - name: wp_db_name
-      prompt: "Introduce el nombre de la base de datos: "
+      prompt: "Introduce el nombre de la base de datos"
       private: no
 
     - name: wp_db_user
-      prompt: "Introduce el nombre del usuario de la base de datos: "
+      prompt: "Introduce el nombre del usuario de la base de datos"
       private: no
 
     - name: wp_db_password
-      prompt: "Introduce la contraseña del usuario de la base de datos: "
+      prompt: "Introduce la contraseña del usuario de la base de datos"
       private: yes
 
     - name: wp_db_host
-      prompt: "Introduce la IP del servidor de la base de datos: "
+      prompt: "Introduce la IP del servidor de la base de datos"
       private: no
 
     - name: wp_url
-      prompt: "Introduce la URL del sitio web (ejemplo: http://192.168.15.145/wordpress): "
+      prompt: "Introduce la URL del sitio web (ejemplo: http://192.168.15.145/wordpress)"
       private: no
 
   tasks:
@@ -51,6 +50,10 @@
         path: /etc/selinux/config
         regexp: '^SELINUX=enforcing'
         replace: 'SELINUX=permissive'
+
+    - name: desactivar SELinux 
+      ansible.builtin.command: setenforce 0
+      when: ansible_selinux.status == "enabled"
         
     - name: Iniciar y habilitar Apache
       ansible.builtin.service:

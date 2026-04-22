@@ -1,0 +1,79 @@
+- name: Crear cluster Galera
+  hosts: galera
+  become: yes
+
+  vars_prompt:
+    - name: galera_internal_ips
+      prompt: "Introduce las IPs INTERNAS de Galera (ej: 192.168.100.21,192.168.100.22,192.168.100.23)"
+      private: no
+
+  vars:
+    galera_cluster_name: wp_galera_cluster
+    galera_ips_internal: "{{ galera_internal_ips.split(',') | map('trim') | list }}"
+
+  tasks:
+
+    - name: Instalar paquetes Galera
+      dnf:
+        name:
+          - mariadb
+          - mariadb-server-galera
+          - galera
+          - rsync
+        state: present
+
+    - name: desactivar SELinux en el arranque
+      ansible.builtin.replace:
+        path: /etc/selinux/config
+        regexp: '^SELINUX=enforcing'
+        replace: 'SELINUX=permissive'
+
+    - name: desactivar SELinux 
+      ansible.builtin.command: setenforce 0
+      when: ansible_selinux.status == "enabled"
+
+    - name: Habilitar MariaDB
+      systemd:
+        name: mariadb
+        enabled: yes
+
+    - name: Detener MariaDB antes de configurar Galera
+      systemd:
+        name: mariadb
+        state: stopped
+
+    - name: Configurar Galera con IP interna
+      template:
+        src: galera.cnf.j2
+        dest: /etc/my.cnf.d/galera.cnf
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Abrir puertos 4567
+      command: firewall-cmd --add-port=4567/tcp --permanent
+    - name: Abrir puertos 4568
+      command: firewall-cmd --add-port=4568/tcp --permanent
+    - name: Abrir puertos 4444
+      command: firewall-cmd --add-port=4444/tcp --permanent
+    - name: Abrir puertos 3306
+      command: firewall-cmd --add-port=3306/tcp --permanent
+    - name: Recargar firewall
+      command: firewall-cmd --reload
+
+    - name: Bootstrap del primer nodo Galera
+      command: galera_new_cluster
+      when: inventory_hostname == groups['galera'][0]
+
+    - name: Arrancar MariaDB en nodos secundarios
+      systemd:
+        name: mariadb
+        state: started
+      when: not ansible_check_mode
+      run_once: false
+
+  handlers:
+    - name: reload_firewall
+      systemd:
+        name: firewalld
+        state: reloaded

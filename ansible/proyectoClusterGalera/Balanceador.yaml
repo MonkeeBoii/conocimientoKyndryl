@@ -1,16 +1,26 @@
 - name: Configurar y comprobar HAProxy en AlmaLinux
-  hosts: haproxy
+  hosts: prueba
   become: true
-  vars:
-    haproxy_backends:
-      - name: app1
-        host: 10.0.0.10
-        port: 80
-      - name: app2
-        host: 10.0.0.11
-        port: 80
+  vars_prompt:
+    - name: haproxy_backends_input
+      prompt: >-
+        Introduce backends como `name:host:port` separados por comas.
+        Ejemplo: web1:10.0.0.1:80,web2:10.0.0.2:80
+      private: no
 
   tasks:
+    - name: Inicializar lista de backends
+      set_fact:
+        haproxy_backends: []
+
+    - name: Construir lista de backends desde CSV
+      set_fact:
+        haproxy_backends: "{{ haproxy_backends + [ {'name': parts[0] | trim, 'host': parts[1] | trim, 'port': (parts[2] | int) } ] }}"
+      vars:
+        parts: "{{ item.split(':') }}"
+      loop: "{{ haproxy_backends_input.split(',') }}"
+      when: item | trim != ''
+
     - name: Instalar HAProxy
       ansible.builtin.yum:
         name: haproxy
@@ -21,6 +31,10 @@
         path: /etc/selinux/config
         regexp: '^SELINUX=enforcing'
         replace: 'SELINUX=permissive'
+    
+    - name: desactivar SELinux 
+      ansible.builtin.command: setenforce 0
+      when: ansible_selinux.status == "enabled"
 
     - name: Crear directorio /etc/haproxy si no existe
       ansible.builtin.file:
