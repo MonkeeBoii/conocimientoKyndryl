@@ -12,12 +12,12 @@ En el archivo `inventory.ini` podemos poner todos los equipos
 que vayamos a usar en la ejecucion de un `playbook.yaml`.
 >
 * Parámetros  
-`[GRUPO]` los grupos son agrupaciones de hosts que nos 
+`[GRUPO]` los grupos son agrupaciones de hosts que nos
 permitirá ejecutar acciones con muchos equipos a la vez.  
 `ansible_host` este nos permitirá determinar el nombre para
 una maquina en el inventario.  
-`ansible_user` es nos permitirá conectarnos con un usuario 
-determinado hacia la maquina.    
+`ansible_user` es nos permitirá conectarnos con un usuario
+determinado hacia la maquina.  
 
 Ejemplo
 ```yaml
