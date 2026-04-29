@@ -76,7 +76,7 @@
 
     - name: Crear wp-config.php apuntando a la BD remota
       ansible.builtin.template:
-        src: templates/wp-config.php.j2
+        src: proyectoClusterGalera/templates/wp-config.php.j2
         dest: "{{ wp_install_dir }}/wp-config.php"
         owner: apache
         group: apache

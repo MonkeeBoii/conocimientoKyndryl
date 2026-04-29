@@ -1,16 +1,10 @@
 - name: Crear cluster Galera
   hosts: galera
   become: yes
-
-  vars_prompt:
-    - name: galera_internal_ips
-      prompt: "Introduce las IPs INTERNAS de Galera (ej: 192.168.100.21,192.168.100.22,192.168.100.23)"
-      private: no
-
   vars:
     galera_cluster_name: wp_galera_cluster
+    galera_internal_ips: "" # ip1,ip2,ip3,...
     galera_ips_internal: "{{ galera_internal_ips.split(',') | map('trim') | list }}"
-
   tasks:
 
     - name: Instalar paquetes Galera

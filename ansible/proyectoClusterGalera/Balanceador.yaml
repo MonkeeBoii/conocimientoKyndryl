@@ -2,7 +2,7 @@
   hosts: prueba
   become: true
   vars:
-  haproxy_backends_input: ""
+  haproxy_backends_input: "" # name:host:port,name:host:port,...
   tasks:
     - name: Inicializar lista de backends
       set_fact:
