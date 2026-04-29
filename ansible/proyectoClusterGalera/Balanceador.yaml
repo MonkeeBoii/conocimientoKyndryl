@@ -1,13 +1,8 @@
 - name: Configurar y comprobar HAProxy en AlmaLinux
   hosts: prueba
   become: true
-  vars_prompt:
-    - name: haproxy_backends_input
-      prompt: >-
-        Introduce backends como `name:host:port` separados por comas.
-        Ejemplo: web1:10.0.0.1:80,web2:10.0.0.2:80
-      private: no
-
+  vars:
+  haproxy_backends_input: ""
   tasks:
     - name: Inicializar lista de backends
       set_fact:
