@@ -6,6 +6,13 @@
     reboot_after_update: ""  # Si true: reinicia el sistema si se actualiza el kernel
     teams_webhook_url: ""  # URL del webhook de Teams para notificaciones (proporcionar al ejecutar)
   tasks:
+    - name: comprobacion de lista
+      shell: dnf updateinfo list cves
+      args:
+        executable: /bin/bash
+      register: updateinfo_list
+      changed_when: false
+      failed_when: false
 
     - name: Buscar advisory por CVE
       shell: dnf updateinfo list cves | grep -i "{{ cve_id }}"
@@ -84,16 +91,20 @@
                • **Resumen actualización:** {{ update_summary | default('Sin salida') }}
               
                • **Reinicio solicitado:** {{ reboot_after_update | default('false') }}
-
-        - name: Enviar resultado al webhook de Teams
-          uri:
-            url: "{{ teams_webhook_url }}"
-            method: POST
-            headers:
-              Content-Type: "application/json"
-            body: "{{ {'text': webhook_text} }}"
-            body_format: json
-            status_code: [200,201,202]
-          ignore_errors: true
+        
+        - name: Mostrar texto del webhook
+          debug:
+            msg: "{{ webhook_text }}"
+      
+        #- name: Enviar resultado al webhook de Teams
+        #  uri:
+        #    url: "{{ teams_webhook_url }}"
+        #    method: POST
+        #    headers:
+        #      Content-Type: "application/json"
+        #    body: "{{ {'text': webhook_text} }}"
+        #    body_format: json
+        #    status_code: [200,201,202]
+        #  ignore_errors: true
 
       
