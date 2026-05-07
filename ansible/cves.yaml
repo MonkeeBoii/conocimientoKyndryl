@@ -50,12 +50,17 @@
         - name: Construir texto para el webhook
           set_fact:
             webhook_text: >-
-              Aplicación RHSA/actualización para CVE {{ cve_id }}
-              Advisory: {{ advisory_id.stdout | default('N/A') }}
-              Resultado búsqueda: {{ cve_search.stdout | default('Sin resultados') }}
-              Actualización aplicada: {{ 'Sí' if (update_result is defined and ( (update_result.stdout | default('')) + (update_result.stderr | default('')) ) is search('Updated:')) else 'No' }}
-              Salida actualización: {{ ((update_result.stdout | default('')) + '\n' + (update_result.stderr | default(''))) | trim }}
-              Reinicio solicitado: {{ reboot_after_update | default('false') }}
+              **Aplicación RHSA/actualización para CVE {{ cve_id }}**
+
+               • **Advisory:** {{ advisory_id.stdout | default('N/A') }}
+
+               • **Resultado búsqueda:** {{ cve_search.stdout | default('Sin resultados') }}
+
+               • **Actualización aplicada:** {{ 'Sí' if (update_result is defined and ( (update_result.stdout | default('')) + (update_result.stderr | default('')) ) is search('Updated:')) else 'No' }}
+              
+               • **Salida actualización:** {{ ((update_result.stdout | default('')) + '  |  ' + (update_result.stderr | default(''))) | trim }}
+              
+               • **Reinicio solicitado:** {{ reboot_after_update | default('false') }}
 
         - name: Enviar resultado al webhook de Teams
           uri:
