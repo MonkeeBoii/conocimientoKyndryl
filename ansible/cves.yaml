@@ -4,7 +4,7 @@
   vars:
     cve_id: ""    # Ej: CVE-2026-31431 (proporcionar al ejecutar)
     reboot_after_update: ""  # Si true: reinicia el sistema si se actualiza el kernel
-    teams_webhook_url: "https://kyndryl.webhook.office.com/webhookb2/b78cf8ee-1583-4a5a-b33c-e76914257a84@f260df36-bc43-424c-8f44-c85226657b01/IncomingWebhook/bbdf7c56b7174d7eb15bf20979b4b642/2d8022cc-99b2-4610-a942-d364956ad5be/V2_1uVD902Aw2qGsCxM-AivcQrKyiQ4MFSbo7MrfMrvLY1"
+    teams_webhook_url: ""  # URL del webhook de Teams para notificaciones (proporcionar al ejecutar)
   tasks:
 
     - name: Buscar advisory por CVE
