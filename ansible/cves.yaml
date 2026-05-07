@@ -3,7 +3,7 @@
   become: true
   vars:
     cve_id: ""    # Ej: CVE-2026-31431 (proporcionar al ejecutar)
-    reboot_after_update: false  # Si true: reinicia el sistema si se actualiza el kernel
+    reboot_after_update: ""  # Si true: reinicia el sistema si se actualiza el kernel
   tasks:
 
     - name: Buscar advisory por CVE
@@ -37,8 +37,7 @@
       register: update_result
       changed_when: "'Updated:' in (update_result.stdout + update_result.stderr)"
 
-    - name: Reiniciar si se actualizó el kernel y se pidió reiniciar
+    - name: se pidió reiniciar
       reboot:
-        msg: "Reiniciando por actualización de kernel relacionada a {{ cve_id }}"
-        pre_reboot_delay: 5
-      when: reboot_after_update and ('kernel' in (update_result.stdout + update_result.stderr))
+        reboot_timeout: 300
+      when: reboot_after_update
