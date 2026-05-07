@@ -47,6 +47,14 @@
           debug:
             msg: "Bloque principal completado"
       always:
+        - name: Construir resumen de actualización
+          set_fact:
+            update_output: "{{ (update_result.stdout | default('')) + '\n' + (update_result.stderr | default('')) }}"
+            update_summary: >-
+              {{ (((update_result.stdout | default('')) + '\n' + (update_result.stderr | default(''))) | regex_search('(?s)Resumen de la transacción.*?(?:\\n\\s*\\n|$)'))
+                 or (((update_result.stdout | default('')) + '\n' + (update_result.stderr | default(''))) | regex_search('(?s)Transaction Summary.*?(?:\\n\\s*\\n|$)'))
+                 or (((update_result.stdout | default('')) + '\n' + (update_result.stderr | default(''))) | truncate(300, True, '...')) }}
+
         - name: Construir texto para el webhook
           set_fact:
             webhook_text: >-
@@ -56,19 +64,25 @@
 
                • **Resultado búsqueda:** {{ cve_search.stdout | default('Sin resultados') }}
 
-               • **Actualización aplicada:** {{ 'Sí' if (update_result is defined and ( (update_result.stdout | default('')) + (update_result.stderr | default('')) ) is search('Updated:')) else 'No' }}
+               • **Actualización aplicada:** {{ 'Sí' if (update_result is defined and ('Updated:' in ((update_result.stdout | default('')) + (update_result.stderr | default(''))))) else 'No' }}
               
-               • **Salida actualización:** {{ ((update_result.stdout | default('')) + '  |  ' + (update_result.stderr | default(''))) | trim }}
+               • **Resumen actualización:** {{ update_summary | default('Sin salida') }}
               
                • **Reinicio solicitado:** {{ reboot_after_update | default('false') }}
 
-        - name: Enviar resultado al webhook de Teams
-          uri:
-            url: "{{ teams_webhook_url }}"
-            method: POST
-            headers:
-              Content-Type: "application/json"
-            body: "{{ {'text': webhook_text} }}"
-            body_format: json
-            status_code: [200,201,202]
-          ignore_errors: true
+        - name: Mostrar mensaje localmente
+          debug:
+            msg: "{{ webhook_text }}"
+
+        #- name: Enviar resultado al webhook de Teams
+        #  uri:
+        #    url: "{{ teams_webhook_url }}"
+        #    method: POST
+        #    headers:
+        #      Content-Type: "application/json"
+        #    body: "{{ {'text': webhook_text} }}"
+        #    body_format: json
+        #    status_code: [200,201,202]
+        #  ignore_errors: true
+
+      
