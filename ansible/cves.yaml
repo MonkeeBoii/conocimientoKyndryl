@@ -4,6 +4,7 @@
   vars:
     cve_id: ""    # Ej: CVE-2026-31431 (proporcionar al ejecutar)
     reboot_after_update: ""  # Si true: reinicia el sistema si se actualiza el kernel
+    teams_webhook_url: "https://kyndryl.webhook.office.com/webhookb2/b78cf8ee-1583-4a5a-b33c-e76914257a84@f260df36-bc43-424c-8f44-c85226657b01/IncomingWebhook/bbdf7c56b7174d7eb15bf20979b4b642/2d8022cc-99b2-4610-a942-d364956ad5be/V2_1uVD902Aw2qGsCxM-AivcQrKyiQ4MFSbo7MrfMrvLY1"
   tasks:
 
     - name: Buscar advisory por CVE
@@ -24,11 +25,13 @@
     - name: Falla si no se encuentra el advisory
       fail:
         msg: "No se encontró un RHSA para {{ cve_id }}"
+      register: fail_no_advisory
       when: advisory_id.stdout is not defined or advisory_id.stdout == ''
 
     - name: Mostrar advisory que se va a aplicar
       debug:
         msg: "Aplicando advisory {{ advisory_id.stdout }}"
+      when: fail_no_advisory is not defined or not fail_no_advisory.failed
 
     - name: Aplicar actualización usando el advisory
       shell: dnf -y update --advisory={{ advisory_id.stdout }}
@@ -36,8 +39,35 @@
         executable: /bin/bash
       register: update_result
       changed_when: "'Updated:' in (update_result.stdout + update_result.stderr)"
+      when: fail_no_advisory is not defined or not fail_no_advisory.failed
 
     - name: se pidió reiniciar
       reboot:
         reboot_timeout: 300
-      when: reboot_after_update
+      when: reboot_after_update and fail_no_advisory is not defined or not fail_no_advisory.failed
+  # Envolver en un bloque para asegurarnos de que la notificación siempre se envía
+    - block:
+        - name: Placeholder block end
+          debug:
+            msg: "Bloque principal completado"
+      always:
+        - name: Construir texto para el webhook
+          set_fact:
+            webhook_text: >-
+              Aplicación RHSA/actualización para CVE {{ cve_id }}
+              Advisory: {{ advisory_id.stdout | default('N/A') }}
+              Resultado búsqueda: {{ cve_search.stdout | default('Sin resultados') }}
+              Actualización aplicada: {{ 'Sí' if (update_result is defined and ( (update_result.stdout | default('')) + (update_result.stderr | default('')) ) is search('Updated:')) else 'No' }}
+              Salida actualización: {{ ((update_result.stdout | default('')) + '\n' + (update_result.stderr | default(''))) | trim }}
+              Reinicio solicitado: {{ reboot_after_update | default('false') }}
+
+        - name: Enviar resultado al webhook de Teams
+          uri:
+            url: "{{ teams_webhook_url }}"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body: "{{ {'text': webhook_text} }}"
+            body_format: json
+            status_code: [200,201,202]
+          ignore_errors: true
