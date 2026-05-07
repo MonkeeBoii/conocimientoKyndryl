@@ -64,7 +64,7 @@
 
                • **Resultado búsqueda:** {{ cve_search.stdout | default('Sin resultados') }}
 
-               • **Actualización aplicada:** {{ 'Sí' if (update_result is defined and ('Updated:' in ((update_result.stdout | default('')) + (update_result.stderr | default(''))))) else 'No' }}
+               • **Actualización aplicada:** {{ 'Sí' if (update_result is defined) else 'No' }}
               
                • **Resumen actualización:** {{ update_summary | default('Sin salida') }}
               
