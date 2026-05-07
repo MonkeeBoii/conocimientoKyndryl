@@ -37,16 +37,20 @@
       failed_when: false
       when: advisory_id.stdout is defined and advisory_id.stdout | trim != ''
 
-    - name: Determinar si la actualización se aplicó (analizar salida)
+    - name: Determinar si la actualización se aplicó - combinar salida
       set_fact:
         update_output_combined: "{{ (update_result.stdout | default('')) + '\n' + (update_result.stderr | default('')) }}"
+      when: update_result is defined
+
+    - name: Determinar si la actualización se aplicó - analizar salida
+      set_fact:
         update_applied: >-
           {{ (update_output_combined | regex_search('(?i)Updated:') is not none)
              or (update_output_combined | regex_search('(?i)Actualizad') is not none)
              or (update_output_combined | regex_search('(?i)Actualizar\s+\d+\s+Paquetes') is not none)
              or (update_output_combined | regex_search('(?i)Actualizar\s+\d+\s+paquetes') is not none)
           }}
-      when: update_result is defined
+      when: update_output_combined is defined
 
     - name: se pidió reiniciar
       reboot:
