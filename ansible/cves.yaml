@@ -55,7 +55,7 @@
     - name: se pidió reiniciar
       reboot:
         reboot_timeout: 300
-      when: (reboot_after_update) and (advisory_id.stdout is defined and advisory_id.stdout | trim != '')
+      when: reboot_after_update and update_applied and (update_result.stdout is search('kernel') or update_result.stderr is search('kernel'))
   # Envolver en un bloque para asegurarnos de que la notificación siempre se envía
     - block:
         - name: Placeholder block end
@@ -85,19 +85,15 @@
               
                • **Reinicio solicitado:** {{ reboot_after_update | default('false') }}
 
-        - name: Mostrar mensaje localmente
-          debug:
-            msg: "{{ webhook_text }}"
-
-        #- name: Enviar resultado al webhook de Teams
-        #  uri:
-        #    url: "{{ teams_webhook_url }}"
-        #    method: POST
-        #    headers:
-        #      Content-Type: "application/json"
-        #    body: "{{ {'text': webhook_text} }}"
-        #    body_format: json
-        #    status_code: [200,201,202]
-        #  ignore_errors: true
+        - name: Enviar resultado al webhook de Teams
+          uri:
+            url: "{{ teams_webhook_url }}"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body: "{{ {'text': webhook_text} }}"
+            body_format: json
+            status_code: [200,201,202]
+          ignore_errors: true
 
       
