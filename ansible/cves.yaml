@@ -26,7 +26,6 @@
       fail:
         msg: "No se encontró un RHSA para {{ cve_id }}"
       register: fail_no_advisory
-      when: advisory_id.stdout is not defined or advisory_id.stdout == ''
 
     - name: Mostrar advisory que se va a aplicar
       debug:
