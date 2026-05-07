@@ -1,0 +1,22 @@
+- name: Buscar RHSA por CVE y aplicar actualización
+  hosts: all
+  become: true
+  vars:
+    cve_id: ""    # Ej: CVE-2026-31431 (proporcionar al ejecutar)
+    reboot_after_update: false  # Si true: reinicia el sistema si se actualiza el kernel
+  tasks:
+
+    - name: Buscar advisory por CVE
+      shell: dnf updateinfo list cves | grep -i "{{ cve_id }}"
+      args:
+        executable: /bin/bash
+      register: cve_search
+      changed_when: false
+
+    - name: Extraer ID del advisory encontrado
+      shell: |
+        LANG=C dnf updateinfo info --cve {{ cve_id }} | grep "Update ID:" | awk -F': ' '{print $2}'
+      args:
+        executable: /bin/bash
+      register: advisory_id
+      changed_when: false
