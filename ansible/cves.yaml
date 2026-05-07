@@ -15,8 +15,30 @@
 
     - name: Extraer ID del advisory encontrado
       shell: |
-        LANG=C dnf updateinfo info --cve {{ cve_id }} | grep "Update ID:" | awk -F': ' '{print $2}'
+        LANG=C dnf updateinfo info --cve {{ cve_id }} | grep "Update ID:" | awk -F': ' '{print $2}' | head -n 1
       args:
         executable: /bin/bash
       register: advisory_id
       changed_when: false
+    
+    - name: Falla si no se encuentra el advisory
+      fail:
+        msg: "No se encontró un RHSA para {{ cve_id }}"
+      when: advisory_id.stdout is not defined or advisory_id.stdout == ''
+
+    - name: Mostrar advisory que se va a aplicar
+      debug:
+        msg: "Aplicando advisory {{ advisory_id.stdout }}"
+
+    - name: Aplicar actualización usando el advisory
+      shell: dnf -y update --advisory={{ advisory_id.stdout }}
+      args:
+        executable: /bin/bash
+      register: update_result
+      changed_when: "'Updated:' in (update_result.stdout + update_result.stderr)"
+
+    - name: Reiniciar si se actualizó el kernel y se pidió reiniciar
+      reboot:
+        msg: "Reiniciando por actualización de kernel relacionada a {{ cve_id }}"
+        pre_reboot_delay: 5
+      when: reboot_after_update and ('kernel' in (update_result.stdout + update_result.stderr))
