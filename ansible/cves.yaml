@@ -13,6 +13,7 @@
         executable: /bin/bash
       register: cve_search
       changed_when: false
+      failed_when: false
 
     - name: Extraer ID del advisory encontrado
       shell: |
@@ -21,16 +22,11 @@
         executable: /bin/bash
       register: advisory_id
       changed_when: false
-    
-    - name: Falla si no se encuentra el advisory
-      fail:
-        msg: "No se encontró un RHSA para {{ cve_id }}"
-      register: fail_no_advisory
-
+      failed_when: false
     - name: Mostrar advisory que se va a aplicar
       debug:
         msg: "Aplicando advisory {{ advisory_id.stdout }}"
-      when: fail_no_advisory is not defined or not fail_no_advisory.failed
+      when: advisory_id.stdout is defined and advisory_id.stdout | trim != ''
 
     - name: Aplicar actualización usando el advisory
       shell: dnf -y update --advisory={{ advisory_id.stdout }}
@@ -38,12 +34,13 @@
         executable: /bin/bash
       register: update_result
       changed_when: "'Updated:' in (update_result.stdout + update_result.stderr)"
-      when: fail_no_advisory is not defined or not fail_no_advisory.failed
+      failed_when: false
+      when: advisory_id.stdout is defined and advisory_id.stdout | trim != ''
 
     - name: se pidió reiniciar
       reboot:
         reboot_timeout: 300
-      when: reboot_after_update and fail_no_advisory is not defined or not fail_no_advisory.failed
+      when: (reboot_after_update) and (advisory_id.stdout is defined and advisory_id.stdout | trim != '')
   # Envolver en un bloque para asegurarnos de que la notificación siempre se envía
     - block:
         - name: Placeholder block end
