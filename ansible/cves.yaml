@@ -76,15 +76,6 @@
       when: reboot_after_update
   # Envolver en un bloque para asegurarnos de que la notificación siempre se envía
     - block:
-      always:
-        - name: Construir resumen de actualización
-          set_fact:
-            update_output: "{{ (update_result.stdout | default('')) + '\n' + (update_result.stderr | default('')) }}"
-            update_summary: >-
-              {{ (((update_result.stdout | default('')) + '\n' + (update_result.stderr | default(''))) | regex_search('(?s)Resumen de la transacción.*?(?:\\n\\s*\\n|$)'))
-                 or (((update_result.stdout | default('')) + '\n' + (update_result.stderr | default(''))) | regex_search('(?s)Transaction Summary.*?(?:\\n\\s*\\n|$)'))
-                 or (((update_result.stdout | default('')) + '\n' + (update_result.stderr | default(''))) | truncate(300, True, '...')) }}
-
         - name: Leer boot id guardado (si existe)
           shell: cat /var/tmp/boot_id_before || true
           args:
@@ -111,6 +102,14 @@
                   if (boot_id_before_file is defined and boot_id_before_file.stdout | trim != '')
                   else False }}
           when: reboot_after_update
+      always:
+        - name: Construir resumen de actualización
+          set_fact:
+            update_output: "{{ (update_result.stdout | default('')) + '\n' + (update_result.stderr | default('')) }}"
+            update_summary: >-
+              {{ (((update_result.stdout | default('')) + '\n' + (update_result.stderr | default(''))) | regex_search('(?s)Resumen de la transacción.*?(?:\\n\\s*\\n|$)'))
+                 or (((update_result.stdout | default('')) + '\n' + (update_result.stderr | default(''))) | regex_search('(?s)Transaction Summary.*?(?:\\n\\s*\\n|$)'))
+                 or (((update_result.stdout | default('')) + '\n' + (update_result.stderr | default(''))) | truncate(300, True, '...')) }}
 
         - name: Construir texto para el webhook
           set_fact:
