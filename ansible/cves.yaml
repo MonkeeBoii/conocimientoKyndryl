@@ -73,7 +73,7 @@
     - name: se pidió reiniciar
       reboot:
         reboot_timeout: 300
-      when: reboot_after_update and update_applied and (update_result.stdout is search('kernel') or update_result.stderr is search('kernel'))
+      when: reboot_after_update
   # Envolver en un bloque para asegurarnos de que la notificación siempre se envía
     - block:
         - name: Placeholder block end
