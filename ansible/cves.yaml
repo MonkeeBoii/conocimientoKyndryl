@@ -4,7 +4,7 @@
   vars:
     cve_id: ""    # Ej: CVE-2026-31431 (proporcionar al ejecutar)
     reboot_after_update: ""  # Si true: reinicia el sistema si se actualiza el kernel
-    teams_webhook_url: ""  # URL del webhook de Teams para notificaciones (proporcionar al ejecutar)
+    teams_webhook_url: "https://kyndryl.webhook.office.com/webhookb2/b78cf8ee-1583-4a5a-b33c-e76914257a84@f260df36-bc43-424c-8f44-c85226657b01/IncomingWebhook/bbdf7c56b7174d7eb15bf20979b4b642/2d8022cc-99b2-4610-a942-d364956ad5be/V2_1uVD902Aw2qGsCxM-AivcQrKyiQ4MFSbo7MrfMrvLY1"  # URL del webhook de Teams para notificaciones (proporcionar al ejecutar)
   tasks:
     - name: comprobacion de lista
       shell: dnf updateinfo list cves
@@ -13,6 +13,17 @@
       register: updateinfo_list
       changed_when: false
       failed_when: false
+
+    - name: Guardar boot id antes de la actualización (si se solicita reinicio)
+      shell: |
+        cat /proc/sys/kernel/random/boot_id > /var/tmp/boot_id_before || true
+        cat /proc/sys/kernel/random/boot_id || true
+      args:
+        executable: /bin/bash
+      register: boot_id_before
+      changed_when: false
+      failed_when: false
+      when: reboot_after_update | default(false)
 
     - name: Buscar advisory por CVE
       shell: dnf updateinfo list cves | grep -i "{{ cve_id }}"
@@ -77,6 +88,40 @@
                  or (((update_result.stdout | default('')) + '\n' + (update_result.stderr | default(''))) | regex_search('(?s)Transaction Summary.*?(?:\\n\\s*\\n|$)'))
                  or (((update_result.stdout | default('')) + '\n' + (update_result.stderr | default(''))) | truncate(300, True, '...')) }}
 
+        - name: Leer boot id guardado (si existe)
+          shell: cat /var/tmp/boot_id_before || true
+          args:
+            executable: /bin/bash
+          register: boot_id_before_file
+          changed_when: false
+          failed_when: false
+
+        - name: Esperar y comprobar reinicio (si se solicitó reinicio y se aplicó la actualización)
+          shell: cat /proc/sys/kernel/random/boot_id || true
+          args:
+            executable: /bin/bash
+          register: boot_id_after_check
+          retries: 6
+          delay: 10
+          until: boot_id_before_file.stdout is defined and (boot_id_after_check.stdout | trim) != (boot_id_before_file.stdout | trim)
+          failed_when: false
+          when: reboot_after_update | default(false) and update_applied
+
+        - name: Obtener boot id actual (fallback si no se esperó reinicio)
+          shell: cat /proc/sys/kernel/random/boot_id || true
+          args:
+            executable: /bin/bash
+          register: boot_id_after_fallback
+          changed_when: false
+          failed_when: false
+          when: not (reboot_after_update | default(false) and update_applied)
+
+        - name: Determinar si el host se reinició
+          set_fact:
+            host_rebooted: >-
+              {{ ((boot_id_after_check.stdout | default('')) | trim) != ((boot_id_before_file.stdout | default('')) | trim)
+                  if (boot_id_before_file is defined and boot_id_before_file.stdout | trim != '')
+                  else False }}
         - name: Construir texto para el webhook
           set_fact:
             webhook_text: >-
@@ -91,20 +136,31 @@
                • **Resumen actualización:** {{ update_summary | default('Sin salida') }}
               
                • **Reinicio solicitado:** {{ reboot_after_update | default('false') }}
+
+               • **Host reiniciado:** {{ 'Sí' if host_rebooted else 'No' }}
         
         - name: Mostrar texto del webhook
           debug:
             msg: "{{ webhook_text }}"
       
-        #- name: Enviar resultado al webhook de Teams
-        #  uri:
-        #    url: "{{ teams_webhook_url }}"
-        #    method: POST
-        #    headers:
-        #      Content-Type: "application/json"
-        #    body: "{{ {'text': webhook_text} }}"
-        #    body_format: json
-        #    status_code: [200,201,202]
-        #  ignore_errors: true
+        - name: Enviar resultado al webhook de Teams (reintentos y registro)
+          uri:
+            url: "{{ teams_webhook_url }}"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body: "{{ {'text': webhook_text} }}"
+            body_format: json
+            status_code: [200,201,202]
+            timeout: 30
+          register: webhook_result
+          retries: 3
+          delay: 5
+          until: webhook_result.status is defined and webhook_result.status in [200,201,202]
+          failed_when: false
+
+        - name: Mostrar resultado del intento de webhook
+          debug:
+            msg: "Status={{ webhook_result.status | default('N/A') }} Content={{ webhook_result.content | default('') }}"
 
       
