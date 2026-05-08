@@ -76,9 +76,6 @@
       when: reboot_after_update
   # Envolver en un bloque para asegurarnos de que la notificación siempre se envía
     - block:
-        - name: Placeholder block end
-          debug:
-            msg: "Bloque principal completado"
       always:
         - name: Construir resumen de actualización
           set_fact:
@@ -96,7 +93,7 @@
           changed_when: false
           failed_when: false
 
-        - name: Esperar y comprobar reinicio (si se solicitó reinicio y se aplicó la actualización)
+        - name: Esperar y comprobar reinicio (si se solicitó reinicio)
           shell: cat /proc/sys/kernel/random/boot_id || true
           args:
             executable: /bin/bash
@@ -105,16 +102,7 @@
           delay: 10
           until: boot_id_before_file.stdout is defined and (boot_id_after_check.stdout | trim) != (boot_id_before_file.stdout | trim)
           failed_when: false
-          when: reboot_after_update | default(false) and update_applied
-
-        - name: Obtener boot id actual (fallback si no se esperó reinicio)
-          shell: cat /proc/sys/kernel/random/boot_id || true
-          args:
-            executable: /bin/bash
-          register: boot_id_after_fallback
-          changed_when: false
-          failed_when: false
-          when: not (reboot_after_update | default(false) and update_applied)
+          when: reboot_after_update
 
         - name: Determinar si el host se reinició
           set_fact:
@@ -122,6 +110,8 @@
               {{ ((boot_id_after_check.stdout | default('')) | trim) != ((boot_id_before_file.stdout | default('')) | trim)
                   if (boot_id_before_file is defined and boot_id_before_file.stdout | trim != '')
                   else False }}
+          when: reboot_after_update
+
         - name: Construir texto para el webhook
           set_fact:
             webhook_text: >-
